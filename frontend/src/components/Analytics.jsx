@@ -49,21 +49,21 @@ function Analytics() {
   return (
     <div className="space-y-10">
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {statCards.map((stat, idx) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.1 }}
-            className="glass-card p-6 flex items-center gap-5"
+            className="glass-card p-5 md:p-6 flex items-center gap-4 md:gap-5"
           >
-            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl", stat.color, stat.shadow)}>
-              <stat.icon size={28} />
+            <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shrink-0", stat.color, stat.shadow)}>
+              <stat.icon size={24} className="md:w-7 md:h-7" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+              <p className="text-xs md:text-sm font-medium text-slate-500">{stat.label}</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">{stat.value}</p>
             </div>
           </motion.div>
         ))}
@@ -71,19 +71,19 @@ function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Mock Chart Area 1 */}
-        <div className="glass-card p-8 min-h-[400px] flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+        <div className="glass-card p-6 md:p-8 min-h-[300px] md:min-h-[400px] flex flex-col">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+            <h3 className="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
               <BarChart3 className="text-accent" />
               Hiring Pipeline Trend
             </h3>
-            <select className="bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold px-3 py-1 text-slate-600 focus:outline-none">
+            <select className="bg-slate-50 border border-slate-200 rounded-lg text-[10px] md:text-xs font-bold px-3 py-1.5 text-slate-600 focus:outline-none w-full sm:w-auto">
               <option>Last 30 Days</option>
               <option>Last 6 Months</option>
             </select>
           </div>
           
-          <div className="flex-1 flex items-end gap-3 pb-4">
+          <div className="flex-1 flex items-end gap-1.5 md:gap-3 pb-4 overflow-hidden">
             {[40, 70, 55, 90, 65, 80, 45, 100, 75, 85, 60, 95].map((height, i) => (
               <motion.div 
                 key={i}
@@ -92,7 +92,8 @@ function Analytics() {
                 transition={{ delay: 0.5 + i * 0.05, duration: 1 }}
                 className={cn(
                   "flex-1 rounded-t-lg transition-all duration-500 hover:brightness-110 cursor-pointer",
-                  i === 7 ? "bg-accent" : "bg-slate-200"
+                  i === 7 ? "bg-accent" : "bg-slate-200",
+                  i > 6 && "hidden sm:block" // Hide some bars on very small screens to avoid clutter
                 )}
               />
             ))}
@@ -105,21 +106,21 @@ function Analytics() {
         </div>
 
         {/* Mock Chart Area 2 */}
-        <div className="glass-card p-8 min-h-[400px] flex flex-col">
+        <div className="glass-card p-6 md:p-8 min-h-[300px] md:min-h-[400px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
               <PieChartIcon className="text-primary-500" />
               Candidate Sources
             </h3>
           </div>
           
-          <div className="flex-1 flex items-center justify-center relative">
-             <div className="w-48 h-48 rounded-full border-[16px] border-slate-100 relative">
+          <div className="flex-1 flex items-center justify-center relative py-6">
+             <div className="w-36 h-36 md:w-48 md:h-48 rounded-full border-[12px] md:border-[16px] border-slate-100 relative">
                {/* Simplified mock pie sections */}
-               <div className="absolute inset-0 rounded-full border-[16px] border-accent border-l-transparent border-b-transparent transform -rotate-45" />
+               <div className="absolute inset-0 rounded-full border-[12px] md:border-[16px] border-accent border-l-transparent border-b-transparent transform -rotate-45" />
                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                 <p className="text-3xl font-black text-slate-900">124</p>
-                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Leads</p>
+                 <p className="text-2xl md:text-3xl font-black text-slate-900">124</p>
+                 <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Leads</p>
                </div>
              </div>
           </div>

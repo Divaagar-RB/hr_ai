@@ -53,23 +53,23 @@ function FeedbackUpload({ onComplete }) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-12"
+          className="glass-card p-6 md:p-12"
         >
           <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6 text-primary-600">
-              <MessageSquare size={40} />
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6 text-primary-600">
+              <MessageSquare className="w-8 h-8 md:w-10 md:h-10" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Interview Feedback</h2>
-            <p className="text-slate-500 max-w-md mx-auto">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">Upload Interview Feedback</h2>
+            <p className="text-sm md:text-base text-slate-500 max-w-md mx-auto">
               Digitize handwritten or typed interview notes. Gemma 3 will extract round details and scores.
             </p>
           </div>
 
-          <div className="space-y-8 max-w-md mx-auto">
+          <div className="space-y-6 md:space-y-8 max-w-md mx-auto">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 ml-1">Select Candidate</label>
+              <label className="text-xs md:text-sm font-bold text-slate-700 ml-1">Select Candidate</label>
               <select 
-                className="input-field appearance-none"
+                className="input-field appearance-none text-sm"
                 value={selectedCandidate}
                 onChange={(e) => setSelectedCandidate(e.target.value)}
               >
@@ -81,16 +81,16 @@ function FeedbackUpload({ onComplete }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 ml-1">Feedback Image</label>
+              <label className="text-xs md:text-sm font-bold text-slate-700 ml-1">Feedback Image</label>
               <label className="relative group cursor-pointer block">
                 <div className={cn(
-                  "px-8 py-10 border-2 border-dashed rounded-2xl transition-all duration-300 text-center",
+                  "px-4 md:px-8 py-8 md:py-10 border-2 border-dashed rounded-2xl transition-all duration-300 text-center",
                   file ? "border-primary-500 bg-primary-50/30" : "border-slate-200 hover:border-primary-400 hover:bg-slate-50"
                 )}>
                   <input type="file" className="hidden" onChange={(e) => setFile(e.target.files[0])} accept="image/*" />
                   <div className="flex flex-col items-center gap-3 text-slate-400 group-hover:text-primary-500">
-                    <Upload size={32} />
-                    <span className="text-sm font-medium">{file ? file.name : "Click to upload notes image"}</span>
+                    <Upload className="w-6 h-6 md:w-8 md:h-8" />
+                    <span className="text-xs md:text-sm font-medium truncate max-w-full">{file ? file.name : "Click to upload notes image"}</span>
                   </div>
                 </div>
               </label>
@@ -136,24 +136,24 @@ function FeedbackUpload({ onComplete }) {
           </div>
 
           <div className="glass-card overflow-hidden">
-            <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
+            <div className="bg-slate-900 p-6 md:p-8 text-white flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                  <Target size={24} className="text-primary-400" />
+                <div className="w-11 h-11 md:w-12 md:h-12 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Target size={22} className="text-primary-400" />
                 </div>
                 <div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Interview Status</p>
-                  <p className="text-xl font-bold">{result.status || "Extracted"}</p>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Interview Status</p>
+                  <p className="text-lg md:text-xl font-bold">{result.status || "Extracted"}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Round Number</p>
-                <p className="text-xl font-bold">#{result.round_number || 1}</p>
+              <div className="text-center md:text-right">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Round Number</p>
+                <p className="text-lg md:text-xl font-bold">#{result.round_number || 1}</p>
               </div>
             </div>
 
-            <div className="p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-6 md:p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-4">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <Star size={18} className="text-amber-400 fill-amber-400" />

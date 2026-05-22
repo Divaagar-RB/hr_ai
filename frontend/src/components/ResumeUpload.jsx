@@ -45,26 +45,26 @@ function ResumeUpload({ onComplete }) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-12 text-center"
+          className="glass-card p-6 md:p-12 text-center"
         >
-          <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-accent">
-            <Upload size={40} />
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-accent">
+            <Upload className="w-8 h-8 md:w-10 md:h-10" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Candidate Resume</h2>
-          <p className="text-slate-500 mb-8 max-w-md mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">Upload Candidate Resume</h2>
+          <p className="text-sm md:text-base text-slate-500 mb-8 max-w-md mx-auto">
             Upload a resume image or PDF. Our AI (Gemma 3) will automatically extract candidate details.
           </p>
 
           <div className="flex flex-col items-center gap-6">
-            <label className="relative group cursor-pointer">
+            <label className="relative group cursor-pointer w-full max-w-xs">
               <div className={cn(
-                "px-8 py-4 border-2 border-dashed rounded-2xl transition-all duration-300",
+                "px-4 md:px-8 py-4 border-2 border-dashed rounded-2xl transition-all duration-300",
                 file ? "border-accent bg-accent/5" : "border-slate-200 hover:border-accent hover:bg-slate-50"
               )}>
                 <input type="file" className="hidden" onChange={handleFileChange} accept="image/*,application/pdf" />
-                <div className="flex items-center gap-3 text-slate-600 group-hover:text-accent font-medium">
-                  <FileText size={20} />
-                  {file ? file.name : "Click to select a file"}
+                <div className="flex items-center justify-center gap-3 text-slate-600 group-hover:text-accent font-medium text-sm">
+                  <FileText size={18} />
+                  <span className="truncate max-w-[150px]">{file ? file.name : "Click to select a file"}</span>
                 </div>
               </div>
             </label>
@@ -112,25 +112,25 @@ function ResumeUpload({ onComplete }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Candidate Card */}
-            <div className="glass-card p-8 space-y-6">
+            <div className="glass-card p-6 md:p-8 space-y-6">
               <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
-                <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center text-white text-2xl font-bold uppercase">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-accent flex items-center justify-center text-white text-xl md:text-2xl font-bold uppercase shrink-0">
                   {result.name?.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">{result.name}</h3>
-                  <p className="text-slate-500 text-sm">{result.status}</p>
+                  <h3 className="text-lg md:text-xl font-bold text-slate-900 leading-tight">{result.name}</h3>
+                  <p className="text-slate-500 text-xs md:text-sm">{result.status}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center gap-4 text-slate-600">
-                  <Mail size={18} className="text-accent" />
-                  <span className="text-sm font-medium">{result.email}</span>
+                <div className="flex items-center gap-4 text-slate-600 truncate">
+                  <Mail size={16} className="text-accent shrink-0" />
+                  <span className="text-xs md:text-sm font-medium truncate">{result.email}</span>
                 </div>
                 <div className="flex items-center gap-4 text-slate-600">
-                  <Phone size={18} className="text-accent" />
-                  <span className="text-sm font-medium">{result.phone}</span>
+                  <Phone size={16} className="text-accent shrink-0" />
+                  <span className="text-xs md:text-sm font-medium">{result.phone}</span>
                 </div>
               </div>
               

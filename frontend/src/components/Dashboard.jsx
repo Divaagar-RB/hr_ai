@@ -59,14 +59,14 @@ function Dashboard() {
           />
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+          <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-hidden min-w-max">
             {['All', 'Pending', 'Interviewing', 'Selected', 'Rejected'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-all",
+                  "px-3 md:px-4 py-2 text-[13px] md:text-sm font-medium rounded-lg transition-all",
                   filterStatus === status 
                     ? "bg-accent text-white shadow-md shadow-accent/20" 
                     : "text-slate-600 hover:bg-slate-50"
@@ -92,34 +92,34 @@ function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
               key={candidate.id}
-              className="glass-card p-6 flex flex-col md:flex-row items-center gap-6 hover:shadow-2xl transition-all duration-500 group"
+              className="glass-card p-5 md:p-6 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 hover:shadow-2xl transition-all duration-500 group"
             >
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-primary-400/20 flex items-center justify-center text-accent font-bold text-2xl border border-accent/10">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-primary-400/20 flex items-center justify-center text-accent font-bold text-xl md:text-2xl border border-accent/10 shrink-0">
                 {candidate.name?.charAt(0)}
               </div>
 
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-accent transition-colors">{candidate.name}</h3>
-                  <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-bold border", getStatusStyle(candidate.status))}>
+              <div className="flex-1 space-y-1 text-center md:text-left w-full overflow-hidden">
+                <div className="flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-3">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-accent transition-colors truncate max-w-full">{candidate.name}</h3>
+                  <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold border", getStatusStyle(candidate.status))}>
                     {candidate.status}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-                  <span className="flex items-center gap-1.5"><Mail size={16} /> {candidate.email}</span>
-                  <span className="flex items-center gap-1.5"><Phone size={16} /> {candidate.phone}</span>
-                  <span className="flex items-center gap-1.5"><Calendar size={16} /> {new Date(candidate.created_at).toLocaleDateString()}</span>
+                <div className="flex flex-col md:flex-row flex-wrap justify-center md:justify-start gap-2 md:gap-4 text-xs md:text-sm text-slate-500">
+                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Mail size={14} className="md:w-4 md:h-4" /> <span className="truncate">{candidate.email}</span></span>
+                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Phone size={14} className="md:w-4 md:h-4" /> {candidate.phone}</span>
+                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Calendar size={14} className="md:w-4 md:h-4" /> {new Date(candidate.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="pt-2 flex flex-wrap gap-2">
+                <div className="pt-2 flex flex-wrap justify-center md:justify-start gap-2">
                   {candidate.skills?.map(skill => (
-                    <span key={skill} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-semibold uppercase tracking-wider">
+                    <span key={skill} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-semibold uppercase tracking-wider">
                       {skill}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-3">
                 <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
                   <ChevronRight size={24} />
                 </button>

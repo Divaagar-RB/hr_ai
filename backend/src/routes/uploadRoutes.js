@@ -142,4 +142,84 @@ router.post(
     }
 );
 
+router.post(
+    "/unified",
+    upload.array("files", 2),
+    async (req, res) => {
+        try {
+            if (!req.files || req.files.length < 2) {
+                return res.status(400).json({ error: "Two files are required: Resume and Feedback" });
+            }
+
+            const resumeFile = req.files[0];
+            const feedbackFile = req.files[1];
+
+            // 1. Extract Resume
+            const resumeRaw = await extractResume(resumeFile.path);
+            const resumeData = JSON.parse(resumeRaw);
+
+            // 2. Save Candidate to DB
+            const candidateQuery = `
+                INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *
+            `;
+            const candidateValues = [
+                resumeData.name,
+                resumeData.email,
+                resumeData.phone,
+                resumeData.skills,
+                resumeData.education,
+                resumeData.experience,
+                resumeData.certifications,
+                resumeFile.path
+            ];
+            const candidateResult = await pool.query(candidateQuery, candidateValues);
+            const candidate = candidateResult.rows[0];
+
+            // 3. Extract Feedback
+            const feedbackRaw = await extractFeedback(feedbackFile.path);
+            const feedbackData = JSON.parse(feedbackRaw);
+
+            // 4. Save Interview to DB
+            const interviewQuery = `
+                INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            `;
+            const interviewValues = [
+                candidate.id,
+                feedbackData.round_number || 1,
+                feedbackData,
+                feedbackData.interviewer,
+                feedbackData.final_status
+            ];
+            const interviewResult = await pool.query(interviewQuery, interviewValues);
+
+            // 5. Update Candidate Status
+            if (feedbackData.final_status) {
+                await pool.query(
+                    'UPDATE candidates SET status = $1 WHERE id = $2',
+                    [feedbackData.final_status, candidate.id]
+                );
+            }
+
+            res.json({
+                message: "Unified extraction successful",
+                candidate: {
+                    ...candidate,
+                    status: feedbackData.final_status || candidate.status
+                },
+                interview: interviewResult.rows[0]
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Unified extraction failed",
+                details: err.message
+            });
+        }
+    }
+);
+
 module.exports = router;

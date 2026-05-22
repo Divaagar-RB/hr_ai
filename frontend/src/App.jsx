@@ -3,6 +3,7 @@ import { LayoutDashboard, UserPlus, MessageSquare, PieChart, Menu, X, Rocket } f
 import Dashboard from './components/Dashboard';
 import ResumeUpload from './components/ResumeUpload';
 import FeedbackUpload from './components/FeedbackUpload';
+import UnifiedUpload from './components/UnifiedUpload';
 import Analytics from './components/Analytics';
 import { cn } from './lib/utils';
 
@@ -14,15 +15,25 @@ function App() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'resume', label: 'Resume Upload', icon: UserPlus },
     { id: 'feedback', label: 'Interview Feedback', icon: MessageSquare },
+    { id: 'unified', label: 'Unified Digitize', icon: Rocket },
     { id: 'analytics', label: 'Hiring Insights', icon: PieChart },
   ];
 
   return (
     <div className="flex min-h-screen bg-slate-50">
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden",
+          isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 lg:block",
           !isSidebarOpen && "-translate-x-full"
         )}
       >
@@ -69,15 +80,15 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-20 bg-white/70 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40">
-          <div className="flex items-center gap-4">
+        <header className="h-20 bg-white/70 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
             <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              onClick={() => setIsSidebarOpen(true)}
               className="p-2 -ml-2 text-slate-500 lg:hidden"
             >
               <Menu size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-xl md:text-2xl font-bold text-slate-900 truncate">
               {navItems.find(t => t.id === activeTab)?.label}
             </h1>
           </div>
@@ -89,11 +100,12 @@ function App() {
           </div>
         </header>
 
-        <section className="flex-1 p-8 overflow-y-auto">
+        <section className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             {activeTab === 'dashboard' && <Dashboard />}
             {activeTab === 'resume' && <ResumeUpload onComplete={() => setActiveTab('dashboard')} />}
             {activeTab === 'feedback' && <FeedbackUpload onComplete={() => setActiveTab('dashboard')} />}
+            {activeTab === 'unified' && <UnifiedUpload onComplete={() => setActiveTab('dashboard')} />}
             {activeTab === 'analytics' && <Analytics />}
           </div>
         </section>
