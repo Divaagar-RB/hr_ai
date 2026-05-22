@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const {
     extractResume,
     extractFeedback,
@@ -9,10 +10,16 @@ const pool = require("../db/db");
 
 const router = express.Router();
 
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, "../uploads/");
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // Configure multer for uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "../uploads/"));
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + "-" + file.originalname);
@@ -81,35 +88,49 @@ router.post(
             }
 
             const rawResult = await extractFeedback(req.file.path);
-            const extractedData = JSON.parse(rawResult);
+            let extractedRounds = JSON.parse(rawResult);
 
-            // Save to DB
-            const query = `
-                INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING *
-            `;
-            const values = [
-                candidate_id,
-                extractedData.round_number || 1,
-                extractedData,
-                extractedData.interviewer,
-                extractedData.final_status
-            ];
+            if (!Array.isArray(extractedRounds)) {
+                extractedRounds = [extractedRounds];
+            }
 
-            const dbResult = await pool.query(query, values);
+            const dbResults = [];
+            let finalStatus = null;
 
-            // Update candidate status based on final_status
-            if (extractedData.final_status) {
+            for (const round of extractedRounds) {
+                // Save to DB
+                const query = `
+                    INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING *
+                `;
+                const values = [
+                    candidate_id,
+                    round.round_number || 1,
+                    JSON.stringify(round.feedback),
+                    round.interviewer,
+                    round.status
+                ];
+
+                const dbResult = await pool.query(query, values);
+                dbResults.push(dbResult.rows[0]);
+
+                if (round.status) {
+                    finalStatus = round.status;
+                }
+            }
+
+            // Update candidate status based on latest final_status
+            if (finalStatus) {
                 await pool.query(
                     'UPDATE candidates SET status = $1 WHERE id = $2',
-                    [extractedData.final_status, candidate_id]
+                    [finalStatus, candidate_id]
                 );
             }
 
             res.json({
                 message: "Feedback extracted and saved successfully",
-                interview: dbResult.rows[0]
+                interviews: dbResults
             });
         } catch (err) {
             console.error(err);
