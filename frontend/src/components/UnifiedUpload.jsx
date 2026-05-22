@@ -5,7 +5,10 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+import config from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
+
 
 function UnifiedUpload({ onComplete }) {
   const [resumeFile, setResumeFile] = useState(null);

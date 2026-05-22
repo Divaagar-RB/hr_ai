@@ -4,7 +4,10 @@ import { X, User, Mail, Phone, Code, GraduationCap, Briefcase, Award, Save, Load
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+import config from '../config';
+
+const API_BASE_URL = config.API_BASE_URL;
+
 
 function CandidateModal({ candidateId, onClose, onUpdate }) {
   const [candidate, setCandidate] = useState(null);
