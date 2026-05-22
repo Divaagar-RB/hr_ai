@@ -2,19 +2,26 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Search, Filter, Mail, Phone, Calendar, ChevronRight, MoreVertical, BadgeCheck, BadgeAlert, BadgeInfo } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import CandidateModal from './CandidateModal';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
-function Dashboard() {
+function Dashboard({ initialSelectedId, onClearInitialId }) {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
 
   useEffect(() => {
     fetchCandidates();
-  }, []);
+    if (initialSelectedId) {
+      setSelectedCandidateId(initialSelectedId);
+      // Clean up the initial ID once consumed
+      if (onClearInitialId) onClearInitialId();
+    }
+  }, [initialSelectedId]);
 
   const fetchCandidates = async () => {
     try {
@@ -80,7 +87,7 @@ function Dashboard() {
       </div>
 
       {/* Candidates List */}
-      <div className="space-y-4">
+      <div className="space-y-4 text-left">
         {loading ? (
           <div className="flex items-center justify-center p-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
@@ -92,7 +99,8 @@ function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
               key={candidate.id}
-              className="glass-card p-5 md:p-6 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 hover:shadow-2xl transition-all duration-500 group"
+              onClick={() => setSelectedCandidateId(candidate.id)}
+              className="glass-card p-5 md:p-6 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 hover:shadow-2xl transition-all duration-500 group cursor-pointer"
             >
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-primary-400/20 flex items-center justify-center text-accent font-bold text-xl md:text-2xl border border-accent/10 shrink-0">
                 {candidate.name?.charAt(0)}
@@ -120,7 +128,7 @@ function Dashboard() {
               </div>
 
               <div className="hidden md:flex items-center gap-3">
-                <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                <button className="p-2 text-slate-400 group-hover:text-accent group-hover:bg-accent/5 rounded-lg transition-all translate-x-0 group-hover:translate-x-1">
                   <ChevronRight size={24} />
                 </button>
               </div>
@@ -132,6 +140,16 @@ function Dashboard() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedCandidateId && (
+          <CandidateModal 
+            candidateId={selectedCandidateId} 
+            onClose={() => setSelectedCandidateId(null)} 
+            onUpdate={fetchCandidates}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, User, Mail, Phone, Code, GraduationCap, Briefcase, Award } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -31,9 +32,12 @@ function ResumeUpload({ onComplete }) {
       setError(null);
       const response = await axios.post(`${API_BASE_URL}/upload/resume`, formData);
       setResult(response.data.candidate);
+      toast.success("Resume processed! Candidate added.");
     } catch (err) {
       console.error("Upload failed:", err);
-      setError(err.response?.data?.error || "Failed to extract resume details. Please try again.");
+      const msg = err.response?.data?.error || "Failed to extract details.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -174,8 +178,8 @@ function ResumeUpload({ onComplete }) {
           </div>
 
           <div className="flex justify-end pt-4">
-            <button onClick={onComplete} className="btn-primary bg-slate-900 hover:bg-slate-800">
-              Go to Dashboard
+            <button onClick={() => onComplete(result)} className="btn-primary bg-slate-900 hover:bg-slate-800">
+              Show Details
             </button>
           </div>
         </motion.div>

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Upload, FileText, MessageSquare, CheckCircle2, AlertCircle, Loader2, Sparkles, User, Target } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -25,9 +26,12 @@ function UnifiedUpload({ onComplete }) {
       setError(null);
       const response = await axios.post(`${API_BASE_URL}/upload/unified`, formData);
       setResult(response.data);
+      toast.success("Extraction complete! Profile updated.");
     } catch (err) {
       console.error("Unified upload failed:", err);
-      setError(err.response?.data?.error || "Failed to process the unified upload. Please check your data.");
+      const msg = err.response?.data?.error || "Failed to process extraction.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -169,39 +173,44 @@ function UnifiedUpload({ onComplete }) {
                 </div>
              </div>
 
-             {/* Interview Feedback Card */}
-             <div className="glass-card p-0 overflow-hidden flex flex-col">
-                <div className="bg-slate-900 p-8 text-white">
-                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Interview Feedback</h3>
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-slate-400 text-xs font-bold mb-1 uppercase">Final Status</p>
-                      <p className="text-xl font-black text-primary-400">{result.interview.status}</p>
+             {/* Interview Feedback List */}
+             <div className="lg:col-span-1 space-y-6">
+                <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Interview Feedback ({result.interviews.length} Rounds)</h3>
+                <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {result.interviews.map((round, idx) => (
+                    <div key={idx} className="glass-card p-0 overflow-hidden flex flex-col border-primary-100/50 border-2">
+                       <div className="bg-slate-900 p-6 text-white">
+                         <div className="flex justify-between items-center">
+                           <div>
+                             <p className="text-slate-400 text-[10px] font-bold mb-1 uppercase tracking-tight">Round #{round.round_number}</p>
+                             <p className="text-lg font-black text-primary-400 leading-none">{round.status || "Extracted"}</p>
+                           </div>
+                           <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                             <Target size={16} className="text-primary-400" />
+                           </div>
+                         </div>
+                       </div>
+                       <div className="p-6 space-y-4">
+                          <div>
+                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Remarks</p>
+                             <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-slate-600 text-xs italic">
+                               "{typeof round.feedback === 'string' ? round.feedback : (round.feedback?.remarks || round.feedback?.round_feedback || "None")}"
+                             </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-500 text-xs">
+                             <User size={12} />
+                             <span className="font-medium">Interviewer: {round.interviewer || "Unknown"}</span>
+                          </div>
+                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-slate-400 text-xs font-bold mb-1 uppercase text-right">Round</p>
-                      <p className="text-xl font-black">#{result.interview.round_number}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-8 flex-1">
-                   <div className="space-y-4">
-                      <p className="text-xs font-bold text-slate-400 uppercase">Key Remarks</p>
-                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 text-sm italic">
-                        "{result.interview.feedback?.remarks}"
-                      </div>
-                   </div>
-                   <div className="mt-6 flex items-center gap-3 text-slate-500">
-                      <User size={16} />
-                      <span className="text-sm font-medium underline underline-offset-4 decoration-slate-200">Interviewer: {result.interview.interviewer}</span>
-                   </div>
+                  ))}
                 </div>
              </div>
           </div>
 
           <div className="flex justify-center">
-            <button onClick={onComplete} className="btn-primary min-w-[200px]">
-              View All Candidates
+            <button onClick={() => onComplete(result.candidate)} className="btn-primary min-w-[200px]">
+              Show Full Profile
             </button>
           </div>
         </motion.div>

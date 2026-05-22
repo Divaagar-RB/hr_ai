@@ -40,10 +40,19 @@ router.post(
             const rawResult = await extractResume(req.file.path);
             const extractedData = JSON.parse(rawResult);
 
-            // Save to DB
+            // Save to DB (Upsert on email)
             const query = `
                 INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (email) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    phone = EXCLUDED.phone,
+                    skills = EXCLUDED.skills,
+                    education = EXCLUDED.education,
+                    experience = EXCLUDED.experience,
+                    certifications = EXCLUDED.certifications,
+                    resume_path = EXCLUDED.resume_path,
+                    created_at = NOW()
                 RETURNING *
             `;
             const values = [
@@ -102,6 +111,11 @@ router.post(
                 const query = `
                     INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
                     VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (candidate_id, round_number) DO UPDATE SET
+                        feedback = EXCLUDED.feedback,
+                        interviewer = EXCLUDED.interviewer,
+                        status = EXCLUDED.status,
+                        created_at = NOW()
                     RETURNING *
                 `;
                 const values = [
@@ -158,20 +172,42 @@ router.post(
             const resumeRaw = await extractResume(resumeFile.path);
             const resumeData = JSON.parse(resumeRaw);
 
-            // 2. Save Candidate to DB
+            // Data Cleaning Helper
+            const cleanToText = (val) => {
+                if (!val) return null;
+                if (typeof val === 'object') return JSON.stringify(val, null, 2);
+                return String(val);
+            };
+
+            const cleanResume = {
+                ...resumeData,
+                education: cleanToText(resumeData.education),
+                experience: cleanToText(resumeData.experience)
+            };
+
+            // 2. Save Candidate to DB (Upsert on email)
             const candidateQuery = `
                 INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (email) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    phone = EXCLUDED.phone,
+                    skills = EXCLUDED.skills,
+                    education = EXCLUDED.education,
+                    experience = EXCLUDED.experience,
+                    certifications = EXCLUDED.certifications,
+                    resume_path = EXCLUDED.resume_path,
+                    created_at = NOW()
                 RETURNING *
             `;
             const candidateValues = [
-                resumeData.name,
-                resumeData.email,
-                resumeData.phone,
-                resumeData.skills,
-                resumeData.education,
-                resumeData.experience,
-                resumeData.certifications,
+                cleanResume.name,
+                cleanResume.email,
+                cleanResume.phone,
+                cleanResume.skills,
+                cleanResume.education,
+                cleanResume.experience,
+                cleanResume.certifications,
                 resumeFile.path
             ];
             const candidateResult = await pool.query(candidateQuery, candidateValues);
@@ -179,28 +215,52 @@ router.post(
 
             // 3. Extract Feedback
             const feedbackRaw = await extractFeedback(feedbackFile.path);
-            const feedbackData = JSON.parse(feedbackRaw);
+            let feedbackRounds = JSON.parse(feedbackRaw);
+            if (!Array.isArray(feedbackRounds)) {
+                feedbackRounds = [feedbackRounds];
+            }
 
-            // 4. Save Interview to DB
-            const interviewQuery = `
-                INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING *
-            `;
-            const interviewValues = [
-                candidate.id,
-                feedbackData.round_number || 1,
-                feedbackData,
-                feedbackData.interviewer,
-                feedbackData.final_status
-            ];
-            const interviewResult = await pool.query(interviewQuery, interviewValues);
+            // 4. Save Interviews to DB
+            const interviewResults = [];
+            let finalStatus = candidate.status || 'Pending';
+
+            // Pre-process rounds for status inference
+            for (let i = 0; i < feedbackRounds.length; i++) {
+                if (!feedbackRounds[i].status && feedbackRounds[i+1]) {
+                    feedbackRounds[i].status = 'Selected';
+                }
+                if (feedbackRounds[i].status) {
+                    finalStatus = feedbackRounds[i].status;
+                }
+            }
+
+            for (const round of feedbackRounds) {
+                const interviewQuery = `
+                    INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (candidate_id, round_number) DO UPDATE SET
+                        feedback = EXCLUDED.feedback,
+                        interviewer = EXCLUDED.interviewer,
+                        status = EXCLUDED.status,
+                        created_at = NOW()
+                    RETURNING *
+                `;
+                const interviewValues = [
+                    candidate.id,
+                    round.round_number || 1,
+                    JSON.stringify(round.feedback),
+                    round.interviewer,
+                    round.status
+                ];
+                const result = await pool.query(interviewQuery, interviewValues);
+                interviewResults.push(result.rows[0]);
+            }
 
             // 5. Update Candidate Status
-            if (feedbackData.final_status) {
+            if (finalStatus) {
                 await pool.query(
                     'UPDATE candidates SET status = $1 WHERE id = $2',
-                    [feedbackData.final_status, candidate.id]
+                    [finalStatus, candidate.id]
                 );
             }
 
@@ -208,9 +268,9 @@ router.post(
                 message: "Unified extraction successful",
                 candidate: {
                     ...candidate,
-                    status: feedbackData.final_status || candidate.status
+                    status: finalStatus || candidate.status
                 },
-                interview: interviewResult.rows[0]
+                interviews: interviewResults
             });
         } catch (err) {
             console.error(err);

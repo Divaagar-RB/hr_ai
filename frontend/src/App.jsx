@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LayoutDashboard, UserPlus, MessageSquare, PieChart, Menu, X, Rocket } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import Dashboard from './components/Dashboard';
 import ResumeUpload from './components/ResumeUpload';
 import FeedbackUpload from './components/FeedbackUpload';
@@ -10,6 +11,14 @@ import { cn } from './lib/utils';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
+
+  const handleComplete = (candidate) => {
+    if (candidate?.id) {
+      setSelectedCandidateId(candidate.id);
+    }
+    setActiveTab('dashboard');
+  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,6 +30,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
+      <Toaster position="top-right" />
       {/* Mobile Sidebar Overlay */}
       <div 
         className={cn(
@@ -102,10 +112,10 @@ function App() {
 
         <section className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
-            {activeTab === 'dashboard' && <Dashboard />}
-            {activeTab === 'resume' && <ResumeUpload onComplete={() => setActiveTab('dashboard')} />}
-            {activeTab === 'feedback' && <FeedbackUpload onComplete={() => setActiveTab('dashboard')} />}
-            {activeTab === 'unified' && <UnifiedUpload onComplete={() => setActiveTab('dashboard')} />}
+            {activeTab === 'dashboard' && <Dashboard initialSelectedId={selectedCandidateId} onClearInitialId={() => setSelectedCandidateId(null)} />}
+            {activeTab === 'resume' && <ResumeUpload onComplete={handleComplete} />}
+            {activeTab === 'feedback' && <FeedbackUpload onComplete={handleComplete} />}
+            {activeTab === 'unified' && <UnifiedUpload onComplete={handleComplete} />}
             {activeTab === 'analytics' && <Analytics />}
           </div>
         </section>

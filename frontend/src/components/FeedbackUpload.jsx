@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Upload, MessageSquare, CheckCircle2, AlertCircle, Loader2, User, Star, ClipboardList, Target } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -38,10 +39,13 @@ function FeedbackUpload({ onComplete }) {
       setUploading(true);
       setError(null);
       const response = await axios.post(`${API_BASE_URL}/upload/feedback`, formData);
-      setResult(response.data.interview);
+      setResult(response.data.interviews);
+      toast.success("Feedback processed! Status updated.");
     } catch (err) {
       console.error("Upload failed:", err);
-      setError(err.response?.data?.error || "Failed to extract feedback details.");
+      const msg = err.response?.data?.error || "Failed to extract feedback.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -128,63 +132,69 @@ function FeedbackUpload({ onComplete }) {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
               <CheckCircle2 className="text-emerald-500" size={28} />
-              Feedback Extracted
+              Feedback Extracted ({result.length} Rounds)
             </h2>
             <button onClick={() => setResult(null)} className="btn-secondary text-sm px-4 py-2">
               Upload New
             </button>
           </div>
 
-          <div className="glass-card overflow-hidden">
-            <div className="bg-slate-900 p-6 md:p-8 text-white flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 md:w-12 md:h-12 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Target size={22} className="text-primary-400" />
-                </div>
-                <div>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Interview Status</p>
-                  <p className="text-lg md:text-xl font-bold">{result.status || "Extracted"}</p>
-                </div>
-              </div>
-              <div className="text-center md:text-right">
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Round Number</p>
-                <p className="text-lg md:text-xl font-bold">#{result.round_number || 1}</p>
-              </div>
-            </div>
-
-            <div className="p-6 md:p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Star size={18} className="text-amber-400 fill-amber-400" />
-                    Round Feedback
-                  </h4>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
-                    {result.feedback?.round_feedback || "No specific feedback extracted."}
+          <div className="space-y-8">
+            {result.map((round, idx) => (
+              <div key={idx} className="glass-card overflow-hidden">
+                <div className="bg-slate-900 p-6 md:p-8 text-white flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 md:w-12 md:h-12 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+                      <Target size={22} className="text-primary-400" />
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Interview Status</p>
+                      <p className="text-lg md:text-xl font-bold">{round.status || "Extracted"}</p>
+                    </div>
+                  </div>
+                  <div className="text-center md:text-right">
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Round Number</p>
+                    <p className="text-lg md:text-xl font-bold">#{round.round_number || 1}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <ClipboardList size={18} className="text-indigo-400" />
-                    Key Remarks
-                  </h4>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 text-sm leading-relaxed">
-                    {result.feedback?.remarks || "No supplementary remarks found."}
+                <div className="p-6 md:p-8 space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <Star size={18} className="text-amber-400 fill-amber-400" />
+                        Round Feedback
+                      </h4>
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+                        {typeof round.feedback === 'string' 
+                          ? round.feedback 
+                          : (round.feedback?.round_feedback || round.feedback?.remarks || "No specific feedback extracted.")}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <ClipboardList size={18} className="text-indigo-400" />
+                        Key Remarks
+                      </h4>
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 text-sm leading-relaxed">
+                        {typeof round.feedback === 'object' ? (round.feedback?.remarks || "No supplementary remarks found.") : "See feedback above."}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-100 flex items-center gap-4 text-slate-600">
+                    <User size={18} />
+                    <span className="text-sm font-medium">Interviewer: <span className="text-slate-900 font-bold">{round.interviewer || "Unknown"}</span></span>
                   </div>
                 </div>
               </div>
-
-              <div className="pt-6 border-t border-slate-100 flex items-center gap-4 text-slate-600">
-                <User size={18} />
-                <span className="text-sm font-medium">Interviewer: <span className="text-slate-900 font-bold">{result.interviewer || "Unknown"}</span></span>
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="flex justify-end">
-            <button onClick={onComplete} className="btn-primary bg-accent hover:bg-accent-dark">
-              Return to Dashboard
+            <button onClick={() => onComplete({id: selectedCandidate})} className="btn-primary bg-accent hover:bg-accent-dark">
+              Show Updated Profile
             </button>
           </div>
         </motion.div>
