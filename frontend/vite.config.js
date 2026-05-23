@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://light-pens-bet.loca.lt/',
+        target: 'https://warm-dolls-relate.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://light-pens-bet.loca.lt/',
+        target: 'https://warm-dolls-relate.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
