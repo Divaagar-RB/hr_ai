@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://clever-forks-sip.loca.lt/',
+        target: 'https://few-groups-trade.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://clever-forks-sip.loca.lt/',
+        target: 'https://few-groups-trade.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {

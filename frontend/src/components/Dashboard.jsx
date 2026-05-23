@@ -47,10 +47,17 @@ function Dashboard({ initialSelectedId, onClearInitialId }) {
 
   const getStatusStyle = (status) => {
     switch (status) {
-      case 'Selected': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Rejected': return 'bg-rose-100 text-rose-700 border-rose-200';
-      case 'Interviewing': return 'bg-amber-100 text-amber-700 border-amber-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'Hired':              return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Offered':            return 'bg-sky-100 text-sky-700 border-sky-200';
+      case 'Selected':           return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Assessment Completed': return 'bg-teal-100 text-teal-700 border-teal-200';
+      case 'Interviewing':       return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Under Review':       return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Hold':               return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'Applied':            return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'Rejected':           return 'bg-rose-100 text-rose-700 border-rose-200';
+      case 'Withdrawn':          return 'bg-gray-100 text-gray-500 border-gray-200';
+      default:                   return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -71,7 +78,7 @@ function Dashboard({ initialSelectedId, onClearInitialId }) {
         
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
           <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-hidden min-w-max">
-            {['All', 'Pending', 'Interviewing', 'Selected', 'Rejected'].map((status) => (
+            {['All', 'Pending', 'Interviewing', 'Selected', 'Offered', 'Hired', 'Hold', 'Rejected'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
@@ -117,9 +124,12 @@ function Dashboard({ initialSelectedId, onClearInitialId }) {
                   </span>
                 </div>
                 <div className="flex flex-col md:flex-row flex-wrap justify-center md:justify-start gap-2 md:gap-4 text-xs md:text-sm text-slate-500">
-                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Mail size={14} className="md:w-4 md:h-4" /> <span className="truncate">{candidate.email}</span></span>
-                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Phone size={14} className="md:w-4 md:h-4" /> {candidate.phone}</span>
-                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Calendar size={14} className="md:w-4 md:h-4" /> {new Date(candidate.created_at).toLocaleDateString()}</span>
+                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Mail size={14} className="md:w-4 md:h-4" /> <span className="truncate">{candidate.email || '—'}</span></span>
+                  <span className="flex items-center justify-center md:justify-start gap-1.5"><Phone size={14} className="md:w-4 md:h-4" /> {candidate.phone || '—'}</span>
+                  {candidate.location && (
+                    <span className="flex items-center justify-center md:justify-start gap-1.5"><Calendar size={14} className="md:w-4 md:h-4" /> {candidate.location}</span>
+                  )}
+                  <span className="flex items-center justify-center md:justify-start gap-1.5 text-slate-400"><Calendar size={14} className="md:w-4 md:h-4" /> {new Date(candidate.created_at).toLocaleDateString()}</span>
                 </div>
                 <div className="pt-2 flex flex-wrap justify-center md:justify-start gap-2">
                   {candidate.skills?.map(skill => (

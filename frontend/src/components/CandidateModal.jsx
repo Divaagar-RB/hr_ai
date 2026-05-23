@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, User, Mail, Phone, Code, GraduationCap, Briefcase, Award, Save, Loader2, MessageSquare, Plus, Trash2, FileText } from 'lucide-react';
+import { X, User, Mail, Phone, Code, GraduationCap, Briefcase, Award, Save, Loader2, MessageSquare, FileText, MapPin, Linkedin } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -43,6 +43,74 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
   const handleSkillsChange = (e) => {
     const skills = e.target.value.split(',').map(s => s.trim());
     setFormData(prev => ({ ...prev, skills }));
+  };
+
+  // Safely render education (array of objects OR plain string from old data)
+  const renderEducation = (education) => {
+    if (!education) return <p className="text-slate-400 text-sm italic">Not provided</p>;
+    const items = Array.isArray(education) ? education : [education];
+    return (
+      <div className="space-y-3">
+        {items.map((edu, i) => {
+          if (typeof edu === 'string') {
+            return <p key={i} className="text-slate-700 text-sm leading-relaxed">{edu}</p>;
+          }
+          return (
+            <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              {edu.degree     && <p className="text-sm font-semibold text-slate-900">{edu.degree}</p>}
+              {edu.institution&& <p className="text-sm text-slate-600">{edu.institution}</p>}
+              <div className="flex gap-4 mt-1">
+                {edu.graduation_year && <span className="text-xs text-slate-400">{edu.graduation_year}</span>}
+                {edu.cgpa           && <span className="text-xs text-accent font-bold">CGPA {edu.cgpa}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Safely render experience (array of objects OR plain string)
+  const renderExperience = (experience) => {
+    if (!experience) return <p className="text-slate-400 text-sm italic">Not provided</p>;
+    const items = Array.isArray(experience) ? experience : [experience];
+    return (
+      <div className="space-y-3">
+        {items.map((exp, i) => {
+          if (typeof exp === 'string') {
+            return <p key={i} className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">{exp}</p>;
+          }
+          return (
+            <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              {exp.role    && <p className="text-sm font-semibold text-slate-900">{exp.role}</p>}
+              {exp.company && <p className="text-sm text-slate-600">{exp.company}</p>}
+              <div className="flex gap-4 mt-1">
+                {exp.start_date && <span className="text-xs text-slate-400">{exp.start_date}</span>}
+                {exp.end_date   && <span className="text-xs text-slate-400">→ {exp.end_date}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Safely render certifications (array OR string)
+  const renderCertifications = (certifications) => {
+    if (!certifications) return <p className="text-slate-400 text-sm italic">None</p>;
+    const items = Array.isArray(certifications) ? certifications
+      : typeof certifications === 'string' ? certifications.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    if (items.length === 0) return <p className="text-slate-400 text-sm italic">None</p>;
+    return (
+      <div className="flex flex-wrap gap-2">
+        {items.map((cert, i) => (
+          <span key={i} className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg text-xs font-bold">
+            <Award size={10} className="inline mr-1" />{cert}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   const saveChanges = async () => {
@@ -152,7 +220,7 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
                         {editMode ? (
                           <input name="email" value={formData.email || ''} onChange={handleInputChange} className="input-field py-2" />
                         ) : (
-                          <p className="text-slate-900 font-medium px-1 truncate text-sm">{candidate?.email}</p>
+                          <p className="text-slate-900 font-medium px-1 truncate text-sm">{candidate?.email || '—'}</p>
                         )}
                       </div>
                       <div className="space-y-1.5">
@@ -160,7 +228,28 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
                         {editMode ? (
                           <input name="phone" value={formData.phone || ''} onChange={handleInputChange} className="input-field py-2" />
                         ) : (
-                          <p className="text-slate-900 font-medium px-1 text-sm">{candidate?.phone}</p>
+                          <p className="text-slate-900 font-medium px-1 text-sm">{candidate?.phone || '—'}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><MapPin size={10}/>Location</label>
+                        {editMode ? (
+                          <input name="location" value={formData.location || ''} onChange={handleInputChange} className="input-field py-2" />
+                        ) : (
+                          <p className="text-slate-700 text-sm px-1">{candidate?.location || '—'}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Linkedin size={10}/>LinkedIn</label>
+                        {editMode ? (
+                          <input name="linkedin" value={formData.linkedin || ''} onChange={handleInputChange} className="input-field py-2" />
+                        ) : candidate?.linkedin ? (
+                          <a href={candidate.linkedin} target="_blank" rel="noopener noreferrer" className="text-accent text-xs underline px-1 break-all">{candidate.linkedin}</a>
+                        ) : (
+                          <p className="text-slate-400 text-sm px-1">—</p>
                         )}
                       </div>
                     </div>
@@ -203,23 +292,20 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
                     <Briefcase size={14} /> Professional Details
                   </h3>
 
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Education</label>
-                      {editMode ? (
-                        <textarea name="education" value={formData.education || ''} onChange={handleInputChange} className="input-field py-2 min-h-[60px]" />
-                      ) : (
-                        <p className="text-slate-700 text-sm leading-relaxed">{candidate?.education}</p>
-                      )}
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><GraduationCap size={10}/>Education</label>
+                      {renderEducation(candidate?.education)}
                     </div>
-                    
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Experience</label>
-                      {editMode ? (
-                        <textarea name="experience" value={formData.experience || ''} onChange={handleInputChange} className="input-field py-2 min-h-[80px]" />
-                      ) : (
-                        <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">{candidate?.experience}</p>
-                      )}
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Briefcase size={10}/>Experience</label>
+                      {renderExperience(candidate?.experience)}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Award size={10}/>Certifications</label>
+                      {renderCertifications(candidate?.certifications)}
                     </div>
                   </div>
                 </div>

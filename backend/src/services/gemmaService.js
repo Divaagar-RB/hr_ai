@@ -134,19 +134,9 @@ async function callAI(prompt, filePath) {
     }
 }
 
-const ENTERPRISE_PROMPT = `You are an Enterprise HR Data Extraction Engine.
+const RESUME_PROMPT = `You are an Enterprise HR Data Extraction Engine.
 
-Your purpose is to extract structured recruitment information from:
-- Resumes
-- CVs
-- Interview feedback screenshots
-- Recruiter notes
-- Email conversations
-- Offer letters
-- Hiring documents
-- OCR text extracted from images
-- Chat messages
-- Candidate tracking documents
+Your purpose is to extract structured candidate information from resumes, CVs, email conversations, and hiring documents.
 
 ==================================================
 PRIMARY OBJECTIVE
@@ -154,106 +144,44 @@ PRIMARY OBJECTIVE
 Extract information accurately.
 Missing information is acceptable.
 Incorrect information is unacceptable.
-Never hallucinate.
-Never generate summaries.
-Never create information that does not exist in the document.
+Never hallucinate. Never generate summaries.
 If a value cannot be found confidently, return: "", [], or null.
 
 ==================================================
 DOCUMENT ANALYSIS
 ==================================================
-Before extraction:
 1. Read the entire document.
 2. Analyze all sections.
 3. Cross-reference information.
-4. Handle OCR mistakes.
-5. Handle broken formatting.
-6. Handle screenshots and images.
-7. Handle interview notes.
+4. Handle OCR mistakes and broken formatting.
 Perform a second verification pass before generating output.
 
 ==================================================
-CANDIDATE EXTRACTION
+EXTRACTION FIELDS
 ==================================================
-Extract: name, email, phone, linkedin, location, skills, education, experience, certifications
+name       - Full candidate name (from header/contact section, NOT recruiter name)
+email      - Valid email address only
+phone      - Complete phone number (Indian: must have 10 digits, else null)
+linkedin   - LinkedIn URL if present
+location   - City/State/Country if present
+skills     - Array of skills from Skills section, Projects, Experience, Technologies
+education  - Array of objects: { degree, institution, graduation_year, cgpa }
+experience - Array of objects: { company, role, start_date, end_date }
+certifications - Array of certification name strings
 
 ==================================================
-NAME EXTRACTION
+RULES
 ==================================================
-Extract full candidate name. Prefer: Resume Header, Profile Section, Contact Section.
-Do not extract recruiter names.
-
-==================================================
-EMAIL & PHONE EXTRACTION
-==================================================
-Extract valid email only. (e.g. divaagarb@gmail.com)
-Extract complete phone number only.
-Validate: Indian numbers should contain 10 digits. Incomplete numbers must be ignored. (Wrong: 948982916, Correct: 9489829160)
-
-==================================================
-SKILLS EXTRACTION
-==================================================
-Extract skills from: Skills Section, Projects, Experience, Technologies Used, Certifications.
-Remove duplicates.
-
-==================================================
-EDUCATION & EXPERIENCE EXTRACTION
-==================================================
-Search entire document.
-Education fields: degree, institution, graduation_year, cgpa. Do not generate summaries.
-Experience fields: company, role, start_date, end_date. Do not generate summaries or estimate years.
-
-==================================================
-CERTIFICATIONS EXTRACTION
-==================================================
-Extract certification names only.
-
-==================================================
-INTERVIEW FEEDBACK EXTRACTION
-==================================================
-Treat each line as an independent interview round.
-Recognize rounds: round 1, round1, r1, 1st round, 1, etc.
-If a line starts with 1, 2, 3, 4, 5, assume it represents a round number.
-
-==================================================
-INTERVIEW STATUS EXTRACTION
-==================================================
-Selected keywords: selected, pass, passed, cleared, shortlisted, next round -> Status = Selected
-Rejected keywords: rejected, failed, not selected, not shortlisted -> Status = Rejected
-Completed keywords: done, completed -> Status = Completed
-
-==================================================
-FEEDBACK & INTERVIEWER EXTRACTION
-==================================================
-Remove status and interviewer names from feedback.
-Assign interviewer only to that round. Never copy interviewers across rounds.
-
-==================================================
-ROUND PROGRESSION RULE
-==================================================
-If a later round exists, Previous round is automatically considered Selected. Progression implies success.
-
-==================================================
-CANDIDATE & APPLICATION DEDUPLICATION
-==================================================
-Match candidates using: 1. Email 2. Phone 3. LinkedIn 4. Name
-If candidate exists: action = UPDATE. Do not create duplicate records.
-Match application: Candidate + Company + Role.
-
-==================================================
-FINAL STATUS CALCULATION
-==================================================
-Priority: Hired, Offered, Selected, Assessment Completed, Under Review, Applied, Rejected. Highest stage reached wins.
-
-==================================================
-VALIDATION PASS
-==================================================
-Before output: Verify all fields, phones, emails, rounds, interviewers, statuses. Remove duplicates. Search document again for empty fields.
+- Do NOT summarize education or experience. Extract exact values only.
+- Remove duplicate skills.
+- Phone: Wrong=948982916 (9 digits), Correct=9489829160 (10 digits)
+- If a field has no data, use null or [].
 
 ==================================================
 OUTPUT FORMAT
 ==================================================
-Return JSON only.
+Return ONLY valid JSON. No markdown, no explanation, no notes.
+
 {
   "candidate": {
     "name": "",
@@ -269,16 +197,104 @@ Return JSON only.
   "interview_rounds": [],
   "final_status": "",
   "action": "INSERT"
-}
+}`;
 
-Never return explanations. Never return markdown. Never return notes. Never return reasoning. Return valid JSON only.`;
+const FEEDBACK_PROMPT = `You are an Enterprise HR Interview Feedback Extraction Engine.
+
+Your purpose is to extract structured interview round information from:
+- Handwritten interview notes
+- Feedback screenshots
+- Recruiter notes
+- Interview assessment sheets
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+Extract interview round information accurately.
+Do NOT extract candidate personal details (name, email, phone).
+Do NOT hallucinate rounds that do not exist.
+If a field cannot be found, use null.
+
+==================================================
+ROUND IDENTIFICATION
+==================================================
+Recognize these patterns as round indicators:
+  round 1, round1, r1, 1st round, R1, Round 1, 1
+  round 2, round2, r2, 2nd round, R2, Round 2, 2
+  round 3, round3, r3, 3rd round, R3, Round 3, 3
+
+If a line starts with: 1, 2, 3, 4, 5 — treat as round number.
+
+==================================================
+STATUS EXTRACTION
+==================================================
+Selected keywords: selected, pass, passed, cleared, shortlisted, next round
+  → status = "Selected"
+
+Rejected keywords: rejected, failed, not selected, not shortlisted
+  → status = "Rejected"
+
+Completed keywords: done, completed
+  → status = "Completed"
+
+Hold keyword: hold, on hold
+  → status = "Hold"
+
+==================================================
+FEEDBACK EXTRACTION
+==================================================
+Extract only the performance notes/score. Remove status keywords and interviewer name from feedback.
+
+Examples:
+  "round 1 done"               → feedback="done"
+  "round 2 3/5 selected rupa"  → feedback="3/5", status="Selected", interviewer="rupa"
+  "round 3 improve technical side rejected ranjith" → feedback="improve technical side", status="Rejected", interviewer="ranjith"
+
+==================================================
+ROUND PROGRESSION RULE
+==================================================
+If Round N+1 exists, Round N status = "Selected" (progression implies success).
+
+==================================================
+INTERVIEWER EXTRACTION
+==================================================
+Assign the name ONLY to the round it appears in. Never copy an interviewer to other rounds.
+
+==================================================
+OUTPUT FORMAT
+==================================================
+Return ONLY valid JSON. No markdown, no explanation, no notes.
+
+{
+  "candidate": {
+    "name": "",
+    "email": "",
+    "phone": "",
+    "linkedin": "",
+    "location": "",
+    "skills": [],
+    "education": [],
+    "experience": [],
+    "certifications": []
+  },
+  "interview_rounds": [
+    {
+      "round_number": 1,
+      "feedback": "",
+      "interviewer": null,
+      "status": null
+    }
+  ],
+  "final_status": "",
+  "action": "INSERT"
+}`;
 
 async function extractResume(filePath) {
-    return await callAI(ENTERPRISE_PROMPT, filePath);
+    return await callAI(RESUME_PROMPT, filePath);
 }
 
 async function extractFeedback(filePath) {
-    return await callAI(ENTERPRISE_PROMPT, filePath);
+    return await callAI(FEEDBACK_PROMPT, filePath);
 }
 
 module.exports = {
