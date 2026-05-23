@@ -169,7 +169,7 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
                       <div className="w-full">
                         <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 block mb-2">Resume Document</label>
                         <a 
-                          href={`http://localhost:5000/${candidate?.resume_path?.replace(/.*\/uploads\//, 'uploads/')}`}
+                          href={`${API_BASE_URL.replace('/api', '')}/${candidate?.resume_path?.replace(/.*\/uploads\//, 'uploads/')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"

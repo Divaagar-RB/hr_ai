@@ -84,7 +84,7 @@ def main():
     
     # 5. Start the backend
     print("\n--- 5. Starting Node.js Backend ---")
-    node_process = run_cmd("npm start", bg=True)
+    node_process = run_cmd("DB_USER=postgres DB_PASSWORD=root DB_HOST=localhost DB_NAME=hr_ai npm start", bg=True)
     threading.Thread(target=stream_logs, args=(node_process, "NODE"), daemon=True).start()
     
     time.sleep(5) # wait for server to start
