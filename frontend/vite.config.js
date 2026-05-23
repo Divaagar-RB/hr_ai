@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://free-heads-sneeze.loca.lt/',
+        target: 'https://two-flies-draw.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://free-heads-sneeze.loca.lt/',
+        target: 'https://two-flies-draw.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
