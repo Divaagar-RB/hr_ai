@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://whole-aliens-rule.loca.lt/',
+        target: 'https://tame-ducks-rush.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://whole-aliens-rule.loca.lt/',
+        target: 'https://tame-ducks-rush.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {

@@ -8,6 +8,32 @@ const {
 } = require("../services/gemmaService");
 const pool = require("../db/db");
 
+const STATUS_PRIORITY = {
+    'Hired': 80,
+    'Offered': 70,
+    'Selected': 60,
+    'Assessment Completed': 50,
+    'Under Review': 40,
+    'Applied': 30,
+    'Interviewing': 20,
+    'Hold': 15,
+    'Pending': 10,
+    'Rejected': 5,
+    'Withdrawn': 0
+};
+
+function getHighestStatus(statusA, statusB) {
+    const a = STATUS_PRIORITY[statusA] || 0;
+    const b = STATUS_PRIORITY[statusB] || 0;
+    return a >= b ? statusA : statusB;
+}
+
+const cleanToNull = (val) => {
+    if (val === undefined || val === null || val === '') return null;
+    if (Array.isArray(val) && val.length === 0) return null;
+    return val;
+};
+
 const router = express.Router();
 
 // Ensure uploads directory exists
@@ -40,33 +66,48 @@ router.post(
             const rawResult = await extractResume(req.file.path);
             const extractedData = JSON.parse(rawResult);
 
-            // Save to DB (Upsert on email)
-            const query = `
-                INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (email) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    phone = EXCLUDED.phone,
-                    skills = EXCLUDED.skills,
-                    education = EXCLUDED.education,
-                    experience = EXCLUDED.experience,
-                    certifications = EXCLUDED.certifications,
-                    resume_path = EXCLUDED.resume_path,
-                    created_at = NOW()
-                RETURNING *
-            `;
-            const values = [
-                extractedData.name,
-                extractedData.email,
-                extractedData.phone,
-                extractedData.skills,
-                extractedData.education,
-                extractedData.experience,
-                extractedData.certifications,
-                req.file.path
-            ];
+            // Data Cleaning
+            const name = cleanToNull(extractedData.name);
+            const email = cleanToNull(extractedData.email);
+            const phone = cleanToNull(extractedData.phone);
+            const skills = cleanToNull(extractedData.skills);
+            const education = cleanToNull(extractedData.education);
+            const experience = cleanToNull(extractedData.experience);
+            const certifications = cleanToNull(extractedData.certifications);
 
-            const dbResult = await pool.query(query, values);
+            // Deduplication and Merge Logic
+            let candidateQuery;
+            let candidateValues;
+            let candidateResult;
+            
+            // Check for existing by Email OR Phone
+            const searchRes = await pool.query('SELECT * FROM candidates WHERE (email = $1 AND email IS NOT NULL) OR (phone = $2 AND phone IS NOT NULL) LIMIT 1', [email, phone]);
+            
+            if (searchRes.rows.length > 0) {
+                // UPDATE (Merge fields, avoid overwriting with null)
+                candidateQuery = `
+                    UPDATE candidates SET
+                        name = COALESCE($1, name),
+                        email = COALESCE($2, email),
+                        phone = COALESCE($3, phone),
+                        skills = COALESCE($4, skills),
+                        education = COALESCE($5, education),
+                        experience = COALESCE($6, experience),
+                        certifications = COALESCE($7, certifications),
+                        resume_path = COALESCE($8, resume_path)
+                    WHERE id = $9 RETURNING *
+                `;
+                candidateValues = [name, email, phone, skills, education, experience, certifications, req.file.path, searchRes.rows[0].id];
+            } else {
+                // INSERT
+                candidateQuery = `
+                    INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+                `;
+                candidateValues = [name, email, phone, skills, education, experience, certifications, req.file.path];
+            }
+
+            const dbResult = await pool.query(candidateQuery, candidateValues);
 
             res.json({
                 message: "Resume extracted and saved successfully",
@@ -108,17 +149,27 @@ router.post(
             }
 
             const dbResults = [];
-            let finalStatus = null;
+            
+            // Fetch candidate's current status first
+            const candRes = await pool.query('SELECT status FROM candidates WHERE id = $1', [candidate_id]);
+            let finalStatus = candRes.rows.length > 0 ? candRes.rows[0].status : null;
+
+            // Progression Inference Logic
+            for (let i = 0; i < extractedRounds.length; i++) {
+                if (!extractedRounds[i].status && extractedRounds[i+1]) {
+                    extractedRounds[i].status = 'Selected'; // Progression implies success
+                }
+            }
 
             for (const round of extractedRounds) {
-                // Save to DB
+                // Save to DB (Merge new feedback into existing)
                 const query = `
                     INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
                     VALUES ($1, $2, $3, $4, $5)
                     ON CONFLICT (candidate_id, round_number) DO UPDATE SET
-                        feedback = EXCLUDED.feedback,
-                        interviewer = EXCLUDED.interviewer,
-                        status = EXCLUDED.status,
+                        feedback = COALESCE(EXCLUDED.feedback, interviews.feedback),
+                        interviewer = COALESCE(EXCLUDED.interviewer, interviews.interviewer),
+                        status = COALESCE(EXCLUDED.status, interviews.status),
                         created_at = NOW()
                     RETURNING *
                 `;
@@ -134,11 +185,11 @@ router.post(
                 dbResults.push(dbResult.rows[0]);
 
                 if (round.status) {
-                    finalStatus = round.status;
+                    finalStatus = getHighestStatus(finalStatus, round.status);
                 }
             }
 
-            // Update candidate status based on latest final_status
+            // Update candidate status based on highest status priority
             if (finalStatus) {
                 await pool.query(
                     'UPDATE candidates SET status = $1 WHERE id = $2',
@@ -178,43 +229,53 @@ router.post(
 
             // Data Cleaning Helper
             const cleanToText = (val) => {
-                if (!val) return null;
+                if (val === undefined || val === null || val === '') return null;
+                if (typeof val === 'object' && Object.keys(val).length === 0) return null;
+                if (Array.isArray(val) && val.length === 0) return null;
                 if (typeof val === 'object') return JSON.stringify(val, null, 2);
                 return String(val);
             };
 
-            const cleanResume = {
-                ...resumeData,
-                education: cleanToText(resumeData.education),
-                experience: cleanToText(resumeData.experience)
-            };
+            const name = cleanToText(resumeData.name);
+            const email = cleanToText(resumeData.email);
+            const phone = cleanToText(resumeData.phone);
+            const skills = resumeData.skills && resumeData.skills.length > 0 ? resumeData.skills : null;
+            const education = cleanToText(resumeData.education);
+            const experience = cleanToText(resumeData.experience);
+            const certifications = cleanToText(resumeData.certifications);
 
-            // 2. Save Candidate to DB (Upsert on email)
-            const candidateQuery = `
-                INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (email) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    phone = EXCLUDED.phone,
-                    skills = EXCLUDED.skills,
-                    education = EXCLUDED.education,
-                    experience = EXCLUDED.experience,
-                    certifications = EXCLUDED.certifications,
-                    resume_path = EXCLUDED.resume_path,
-                    created_at = NOW()
-                RETURNING *
-            `;
-            const candidateValues = [
-                cleanResume.name,
-                cleanResume.email,
-                cleanResume.phone,
-                cleanResume.skills,
-                cleanResume.education,
-                cleanResume.experience,
-                cleanResume.certifications,
-                resumeFile.path
-            ];
-            const candidateResult = await pool.query(candidateQuery, candidateValues);
+            // Deduplication and Merge Logic
+            let candidateQuery;
+            let candidateValues;
+            let candidateResult;
+            
+            const searchRes = await pool.query('SELECT * FROM candidates WHERE (email = $1 AND email IS NOT NULL) OR (phone = $2 AND phone IS NOT NULL) LIMIT 1', [email, phone]);
+            
+            if (searchRes.rows.length > 0) {
+                // UPDATE (Merge fields, avoid overwriting with null)
+                candidateQuery = `
+                    UPDATE candidates SET
+                        name = COALESCE($1, name),
+                        email = COALESCE($2, email),
+                        phone = COALESCE($3, phone),
+                        skills = COALESCE($4, skills),
+                        education = COALESCE($5, education),
+                        experience = COALESCE($6, experience),
+                        certifications = COALESCE($7, certifications),
+                        resume_path = COALESCE($8, resume_path)
+                    WHERE id = $9 RETURNING *
+                `;
+                candidateValues = [name, email, phone, skills, education, experience, certifications, resumeFile.path, searchRes.rows[0].id];
+            } else {
+                // INSERT
+                candidateQuery = `
+                    INSERT INTO candidates (name, email, phone, skills, education, experience, certifications, resume_path)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+                `;
+                candidateValues = [name, email, phone, skills, education, experience, certifications, resumeFile.path];
+            }
+
+            candidateResult = await pool.query(candidateQuery, candidateValues);
             const candidate = candidateResult.rows[0];
 
             // 3. Extract Feedback
@@ -236,10 +297,10 @@ router.post(
             // Pre-process rounds for status inference
             for (let i = 0; i < feedbackRounds.length; i++) {
                 if (!feedbackRounds[i].status && feedbackRounds[i+1]) {
-                    feedbackRounds[i].status = 'Selected';
+                    feedbackRounds[i].status = 'Selected'; // Progression implies success
                 }
                 if (feedbackRounds[i].status) {
-                    finalStatus = feedbackRounds[i].status;
+                    finalStatus = getHighestStatus(finalStatus, feedbackRounds[i].status);
                 }
             }
 
@@ -248,9 +309,9 @@ router.post(
                     INSERT INTO interviews (candidate_id, round_number, feedback, interviewer, status)
                     VALUES ($1, $2, $3, $4, $5)
                     ON CONFLICT (candidate_id, round_number) DO UPDATE SET
-                        feedback = EXCLUDED.feedback,
-                        interviewer = EXCLUDED.interviewer,
-                        status = EXCLUDED.status,
+                        feedback = COALESCE(EXCLUDED.feedback, interviews.feedback),
+                        interviewer = COALESCE(EXCLUDED.interviewer, interviews.interviewer),
+                        status = COALESCE(EXCLUDED.status, interviews.status),
                         created_at = NOW()
                     RETURNING *
                 `;
@@ -265,7 +326,7 @@ router.post(
                 interviewResults.push(result.rows[0]);
             }
 
-            // 5. Update Candidate Status
+            // 5. Update Candidate Status with Highest Priority
             if (finalStatus) {
                 await pool.query(
                     'UPDATE candidates SET status = $1 WHERE id = $2',

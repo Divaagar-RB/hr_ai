@@ -136,43 +136,55 @@ async function callAI(prompt, filePath) {
 
 async function extractResume(filePath) {
     const prompt = `
-    You are an AI resume parser.
-    Extract details from the document in STRICT VALID JSON format.
+    You are an elite AI data extraction specialist. Your task is HIGH-PRECISION CONTEXTUAL EXTRACTION.
+    
+    EXTRACTION RULES:
+    1. Analyze the complete document thoroughly before extracting fields.
+    2. Resolve any OCR errors, broken formatting, forwarded emails, screenshots, or partial text automatically.
+    3. Cross-reference information across the entire document. Prefer contextual understanding over pattern matching.
+    4. If multiple values exist, extract the MOST RECENT and MOST ACCURATE value.
+    5. Never leave fields empty if they can be confidently inferred from surrounding context.
+    6. Accuracy is more important than speed. Think carefully about candidate identity before generating output.
+    
+    Extract details into STRICT VALID JSON format.
     Fields:
-    - name (string: Full name)
-    - email (string)
-    - phone (string)
+    - name (string: Full name of candidate)
+    - email (string: Most accurate email)
+    - phone (string: Most accurate phone number)
     - skills (array of strings)
-    - education (STRICTLY a plain text string: Degree, College, Years. No JSON objects.)
-    - experience (STRICTLY a plain text string: Job title, Company, Dates, and core Responsibilities as a readable paragraph or bulleted text. No JSON objects.)
+    - education (STRICTLY a plain text string: Degree, College, Years. Consolidate into a clean readable paragraph. No JSON objects.)
+    - experience (STRICTLY a plain text string: Job title, Company, Dates, and core Responsibilities as a clean readable paragraph. No JSON objects.)
     - certifications (string)
 
-    Rules:
-    - DO NOT return JSON objects inside the education or experience fields. Use plain text only.
-    - education should include the college name.
-    - Extract experience as readable text capturing the key roles and projects.
-    - Return ONLY the top-level valid JSON object.
+    Return ONLY the top-level valid JSON object. No explanation, no markdown.
     `;
     return await callAI(prompt, filePath);
 }
 
 async function extractFeedback(filePath) {
     const prompt = `
-    Extract interview rounds from the provided handwritten notes or document as a JSON ARRAY.
+    You are an elite HR evaluation specialist. Your task is HIGH-PRECISION CONTEXTUAL EXTRACTION of interview feedback.
     
+    EXTRACTION RULES:
+    1. Analyze the complete document thoroughly before extracting. Preserve entity relationships between rounds, offers, and hiring status.
+    2. Resolve OCR errors, broken formatting, or partial text.
+    3. Cross-reference information. Understand the progression of interviews (e.g. Technical -> Managerial -> HR).
+    4. If a round progressed to the next, the result of the previous round is definitively "Selected".
+    5. Accuracy is paramount. Think through interview progression and hiring progression before generating output.
+
+    Extract interview rounds as a JSON ARRAY.
     Each object must have:
-    - round_number (number, e.g., 1, 2, 3)
-    - feedback (strictly the text describing performance, score, or notes like "done", "3/5", or "improve technical side")
-    - interviewer (string: Name if mentioned, often at the end of the line, else null)
+    - round_number (number: e.g., 1, 2, 3)
+    - feedback (strictly the text describing performance, score, or notes)
+    - interviewer (string: Name if mentioned, else null)
     - status (STRICTLY one of: "Selected", "Rejected", "Hold", or null)
 
-    Rules for Parsing:
-    - "selected" → status: "Selected"
-    - "rejected" → status: "Rejected"
-    - If a round is followed by another round, and no status is given, set status to "Selected" (inference).
+    Inference Rules for Parsing:
+    - "selected", "cleared", "moved to next" → status: "Selected"
+    - "rejected", "not a fit" → status: "Rejected"
+    - If a round is followed by another round, set the previous round's status to "Selected" (inference).
     - If a name is mentioned (like "rupa" or "ranjith"), set it as the interviewer.
-    - Capturing the feedback score (e.g. "3/5") is important.
-    - Return ONLY the JSON array.
+    - Return ONLY the JSON array. No markdown.
     `;
     return await callAI(prompt, filePath);
 }
