@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://warm-dolls-relate.loca.lt/',
+        target: 'https://whole-aliens-rule.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://warm-dolls-relate.loca.lt/',
+        target: 'https://whole-aliens-rule.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {

@@ -29,6 +29,7 @@ async function callOllama(prompt, filePath) {
             stream: false,
             options: {
                 num_ctx: 4096,
+                num_predict: 2048,
                 temperature: 0 // More deterministic for data extraction
             },
             keep_alive: -1

@@ -96,11 +96,15 @@ router.post(
                 return res.status(400).json({ error: "Candidate ID is required" });
             }
 
-            const rawResult = await extractFeedback(req.file.path);
-            let extractedRounds = JSON.parse(rawResult);
-
-            if (!Array.isArray(extractedRounds)) {
-                extractedRounds = [extractedRounds];
+            let extractedRounds = [];
+            try {
+                const rawResult = await extractFeedback(req.file.path);
+                extractedRounds = JSON.parse(rawResult);
+                if (!Array.isArray(extractedRounds)) {
+                    extractedRounds = [extractedRounds];
+                }
+            } catch (e) {
+                return res.status(400).json({ error: "AI failed to extract valid feedback JSON. Please try a clearer image.", details: e.message });
             }
 
             const dbResults = [];
@@ -214,10 +218,15 @@ router.post(
             const candidate = candidateResult.rows[0];
 
             // 3. Extract Feedback
-            const feedbackRaw = await extractFeedback(feedbackFile.path);
-            let feedbackRounds = JSON.parse(feedbackRaw);
-            if (!Array.isArray(feedbackRounds)) {
-                feedbackRounds = [feedbackRounds];
+            let feedbackRounds = [];
+            try {
+                const feedbackRaw = await extractFeedback(feedbackFile.path);
+                feedbackRounds = JSON.parse(feedbackRaw);
+                if (!Array.isArray(feedbackRounds)) {
+                    feedbackRounds = [feedbackRounds];
+                }
+            } catch (e) {
+                console.warn("Feedback AI extraction returned invalid JSON. Skipping feedback.", e.message);
             }
 
             // 4. Save Interviews to DB
