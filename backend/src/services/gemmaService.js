@@ -160,10 +160,10 @@ Perform a second verification pass before generating output.
 EXTRACTION FIELDS
 ==================================================
 name       - Full candidate name (from header/contact section, NOT recruiter name)
-email      - Valid email address only
-phone      - Complete phone number (Indian: must have 10 digits, else null)
-linkedin   - LinkedIn URL if present
-location   - City/State/Country if present
+email      - Valid email address only (look for @ symbol)
+phone      - Complete phone number (extract any sequence of digits, +, or spaces resembling a phone number)
+linkedin   - LinkedIn URL or username (look for linkedin.com or /in/)
+location   - City, State, or Country if present
 skills     - Array of skills from Skills section, Projects, Experience, Technologies
 education  - Array of objects: { degree, institution, graduation_year, cgpa }
 experience - Array of objects: { company, role, start_date, end_date }
@@ -174,8 +174,9 @@ RULES
 ==================================================
 - Do NOT summarize education or experience. Extract exact values only.
 - Remove duplicate skills.
-- Phone: Wrong=948982916 (9 digits), Correct=9489829160 (10 digits)
-- If a field has no data, use null or [].
+- Phone: Extract EXACTLY as written. Do NOT enforce a 10-digit rule. Even if it's 9 or 11 digits, extract it.
+- Look very closely at the top and bottom of the document for contact information (Email/Phone).
+- If a field has absolutely no data, use null or [].
 
 ==================================================
 OUTPUT FORMAT

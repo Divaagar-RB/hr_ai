@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://hip-beds-watch.loca.lt/',
+        target: 'https://late-cycles-exist.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://hip-beds-watch.loca.lt/',
+        target: 'https://late-cycles-exist.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
