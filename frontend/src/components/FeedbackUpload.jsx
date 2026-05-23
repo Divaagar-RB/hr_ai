@@ -35,8 +35,8 @@ function FeedbackUpload({ onComplete }) {
     if (!file || !selectedCandidate) return;
 
     const formData = new FormData();
-    formData.append("feedback", file);
     formData.append("candidate_id", selectedCandidate);
+    formData.append("feedback", file);
 
     try {
       setUploading(true);

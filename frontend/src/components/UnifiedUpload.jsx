@@ -197,7 +197,7 @@ function UnifiedUpload({ onComplete }) {
                           <div>
                              <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Remarks</p>
                              <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-slate-600 text-xs italic">
-                               "{typeof round.feedback === 'string' ? round.feedback : (round.feedback?.remarks || round.feedback?.round_feedback || "None")}"
+                               {typeof round.feedback === 'string' ? round.feedback : (round.feedback?.remarks || round.feedback?.round_feedback || "None")}
                              </div>
                           </div>
                           <div className="flex items-center gap-2 text-slate-500 text-xs">

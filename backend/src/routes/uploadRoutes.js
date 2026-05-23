@@ -25,8 +25,22 @@ const STATUS_PRIORITY = {
     'Withdrawn': 0
 };
 
+// Neutral/initial states that should always be overridden by any definitive result
+const NEUTRAL_STATUSES = new Set(['Pending', 'Applied', '', null, undefined]);
+
 function getHighestStatus(a, b) {
+    // Neutral states are always overridden by any definitive status
+    if (NEUTRAL_STATUSES.has(a)) return b || a;
+    if (NEUTRAL_STATUSES.has(b)) return a;
     return (STATUS_PRIORITY[a] || 0) >= (STATUS_PRIORITY[b] || 0) ? a : b;
+}
+
+// Map interview-level status to a valid candidate-level status
+const INTERVIEW_TO_CANDIDATE = {
+    'Completed': 'Interviewing',  // 'Completed' is not in candidates CHECK constraint
+};
+function toCandidateStatus(s) {
+    return INTERVIEW_TO_CANDIDATE[s] || s;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -61,15 +75,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ── Find existing candidate by email OR phone OR linkedin ─────────────────
-async function findCandidate(email, phone, linkedin) {
+// ── Find existing candidate by email OR phone OR linkedin OR name ──────────
+async function findCandidate(email, phone, linkedin, name) {
     const res = await pool.query(
         `SELECT * FROM candidates
          WHERE (email    = $1 AND $1 IS NOT NULL)
             OR (phone    = $2 AND $2 IS NOT NULL)
             OR (linkedin = $3 AND $3 IS NOT NULL)
+            OR (LOWER(TRIM(name)) = LOWER(TRIM($4)) AND $4 IS NOT NULL)
          LIMIT 1`,
-        [toNull(email), toNull(phone), toNull(linkedin)]
+        [toNull(email), toNull(phone), toNull(linkedin), toNull(name)]
     );
     return res.rows[0] || null;
 }
@@ -86,7 +101,7 @@ async function upsertCandidate(c, resumePath) {
     const experience   = toJsonb(c.experience);
     const certifications = toTextArray(c.certifications);
 
-    const existing = await findCandidate(email, phone, linkedin);
+    const existing = await findCandidate(email, phone, linkedin, name);
 
     if (existing) {
         // MERGE — never overwrite valid data with null
@@ -126,13 +141,15 @@ async function upsertCandidate(c, resumePath) {
 async function saveRounds(candidateId, rounds, existingStatus) {
     let finalStatus = existingStatus || 'Pending';
 
-    // Progression inference: if next round exists, current = Selected
+    // Progression inference + compute candidate-safe finalStatus
     for (let i = 0; i < rounds.length; i++) {
         if (!rounds[i].status && rounds[i + 1]) {
             rounds[i].status = 'Selected';
         }
         if (rounds[i].status) {
-            finalStatus = getHighestStatus(finalStatus, rounds[i].status);
+            // Map interview-only statuses (e.g. 'Completed') to valid candidate statuses
+            const candidateStatus = toCandidateStatus(rounds[i].status);
+            finalStatus = getHighestStatus(finalStatus, candidateStatus);
         }
     }
 

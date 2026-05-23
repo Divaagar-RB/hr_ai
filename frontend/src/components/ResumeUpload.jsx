@@ -16,6 +16,43 @@ function ResumeUpload({ onComplete }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  // Render structured JSONB education array OR legacy plain string
+  const renderEducation = (edu) => {
+    if (!edu) return <span className="italic text-slate-400">Not provided</span>;
+    const items = Array.isArray(edu) ? edu : [edu];
+    return items.map((e, i) => typeof e === 'string'
+      ? <p key={i} className="text-sm text-slate-700">{e}</p>
+      : <div key={i} className="text-sm">
+          {e.degree && <p className="font-semibold text-slate-900">{e.degree}</p>}
+          {e.institution && <p className="text-slate-600">{e.institution}</p>}
+          <p className="text-slate-400 text-xs">{[e.graduation_year, e.cgpa ? `CGPA ${e.cgpa}` : null].filter(Boolean).join(' · ')}</p>
+        </div>
+    );
+  };
+
+  // Render structured JSONB experience array OR legacy plain string
+  const renderExperience = (exp) => {
+    if (!exp) return <span className="italic text-slate-400">Not provided</span>;
+    const items = Array.isArray(exp) ? exp : [exp];
+    return items.map((e, i) => typeof e === 'string'
+      ? <p key={i} className="text-sm text-slate-700 whitespace-pre-line">{e}</p>
+      : <div key={i} className="text-sm">
+          {e.role && <p className="font-semibold text-slate-900">{e.role}</p>}
+          {e.company && <p className="text-slate-600">{e.company}</p>}
+          <p className="text-slate-400 text-xs">{[e.start_date, e.end_date].filter(Boolean).join(' → ')}</p>
+        </div>
+    );
+  };
+
+  // Render certifications array OR string
+  const renderCerts = (certs) => {
+    if (!certs) return <span className="italic text-slate-400">None</span>;
+    const items = Array.isArray(certs) ? certs
+      : typeof certs === 'string' ? certs.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (!items.length) return <span className="italic text-slate-400">None</span>;
+    return <div className="flex flex-wrap gap-2">{items.map((c, i) => <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-bold">{c}</span>)}</div>;
+  };
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
@@ -161,21 +198,21 @@ function ResumeUpload({ onComplete }) {
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <GraduationCap size={14} /> Education
                 </h4>
-                <p className="text-sm text-slate-700 leading-relaxed font-medium">{result.education}</p>
+                <div className="space-y-2">{renderEducation(result.education)}</div>
               </div>
 
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <Briefcase size={14} /> Experience
                 </h4>
-                <p className="text-sm text-slate-700 leading-relaxed">{result.experience}</p>
+                <div className="space-y-2">{renderExperience(result.experience)}</div>
               </div>
 
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <Award size={14} /> Certifications
                 </h4>
-                <p className="text-sm text-slate-700 leading-relaxed italic">{result.certifications || "None extracted"}</p>
+                {renderCerts(result.certifications)}
               </div>
             </div>
           </div>

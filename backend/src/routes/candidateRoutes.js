@@ -43,8 +43,8 @@ router.patch("/:id", async (req, res) => {
         const candidateId = req.params.id;
 
         // JSONB and array fields need proper casting
-        const educationVal  = education    ? (typeof education === 'string'    ? education    : JSON.stringify(education))    : null;
-        const experienceVal = experience   ? (typeof experience === 'string'   ? experience   : JSON.stringify(experience))   : null;
+        const educationVal  = education !== undefined ? JSON.stringify(education) : null;
+        const experienceVal = experience !== undefined ? JSON.stringify(experience) : null;
         const certsVal      = certifications
             ? (Array.isArray(certifications) ? certifications
                : typeof certifications === 'string' ? certifications.split(',').map(s => s.trim()).filter(Boolean)
@@ -85,10 +85,9 @@ router.patch("/interviews/:id", async (req, res) => {
         const { round_number, feedback, interviewer, status } = req.body;
         const interviewId = req.params.id;
 
-        // feedback can be plain string from textarea or a JSON object
-        const feedbackVal = feedback
-            ? (typeof feedback === 'string' ? feedback : JSON.stringify(feedback))
-            : null;
+        // JSONB columns must receive valid JSON strings. A plain string from the textarea
+        // must be JSON.stringify'd to get the surrounding quotes required by Postgres.
+        const feedbackVal = feedback !== undefined ? JSON.stringify(feedback) : null;
 
         const result = await pool.query(
             `UPDATE interviews SET

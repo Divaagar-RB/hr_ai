@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, User, Mail, Phone, Code, GraduationCap, Briefcase, Award, Save, Loader2, MessageSquare, FileText, MapPin, Linkedin } from 'lucide-react';
+import { X, User, Mail, Phone, Code, GraduationCap, Briefcase, Award, Save, Loader2, MessageSquare, FileText, MapPin, Link2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -243,7 +243,7 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
                         )}
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Linkedin size={10}/>LinkedIn</label>
+                        <label className="text-[11px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Link2 size={10}/>LinkedIn</label>
                         {editMode ? (
                           <input name="linkedin" value={formData.linkedin || ''} onChange={handleInputChange} className="input-field py-2" />
                         ) : candidate?.linkedin ? (
