@@ -30,8 +30,8 @@ def main():
         print("WARNING: package.json not found! Please run this script from inside the 'backend' folder.")
     
     # 1. Install PostgreSQL
-    print("\n--- 1. Setting up PostgreSQL ---")
-    run_cmd("sudo apt update && sudo apt install -y postgresql postgresql-contrib")
+    print("\n--- 1. Setting up PostgreSQL and Dependencies ---")
+    run_cmd("sudo apt update && sudo apt install -y postgresql postgresql-contrib zstd")
     run_cmd("sudo service postgresql start")
     
     run_cmd("sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'root';\"")
