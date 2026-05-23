@@ -3,12 +3,18 @@ CREATE TABLE IF NOT EXISTS candidates (
     name TEXT,
     email TEXT UNIQUE,
     phone TEXT,
+    linkedin TEXT,
+    location TEXT,
     skills TEXT[],
-    education TEXT,
-    experience TEXT,
-    certifications TEXT,
+    education JSONB,
+    experience JSONB,
+    certifications TEXT[],
     resume_path TEXT,
-    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Selected', 'Rejected', 'Interviewing', 'Hold')),
+    status TEXT DEFAULT 'Pending' CHECK (status IN (
+        'Pending', 'Selected', 'Rejected', 'Interviewing', 'Hold',
+        'Hired', 'Offered', 'Assessment Completed', 'Under Review',
+        'Applied', 'Withdrawn'
+    )),
     created_at TIMESTAMP DEFAULT NOW()
 );
 

@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://tame-ducks-rush.loca.lt/',
+        target: 'https://clever-forks-sip.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
@@ -16,7 +16,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://tame-ducks-rush.loca.lt/',
+        target: 'https://clever-forks-sip.loca.lt/',
         changeOrigin: true,
         secure: false,
         headers: {
