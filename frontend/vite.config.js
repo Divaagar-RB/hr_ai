@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://clear-streets-carry.loca.lt/',
+        target: 'https://sour-frogs-chew.loca.lt/',
         changeOrigin: true,
         secure: false,
         timeout: 600000,
@@ -18,7 +18,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://clear-streets-carry.loca.lt/',
+        target: 'https://sour-frogs-chew.loca.lt/',
         changeOrigin: true,
         secure: false,
         timeout: 600000,
