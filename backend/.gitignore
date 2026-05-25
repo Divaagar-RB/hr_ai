@@ -1,14 +1,8 @@
 node_modules/
-<<<<<<< HEAD
-backend/node_modules/
-
 .env
 dist/
 build/
-=======
-.env
 src/uploads/*
 !src/uploads/.gitkeep
 .DS_Store
 *.log
->>>>>>> d4041d6 (local)

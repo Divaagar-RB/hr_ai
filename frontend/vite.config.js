@@ -7,18 +7,22 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://late-cycles-exist.loca.lt/',
+        target: 'https://neat-paws-dream.loca.lt/',
         changeOrigin: true,
         secure: false,
+        timeout: 600000,
+        proxyTimeout: 600000,
         headers: {
           'Bypass-Tunnel-Reminder': 'true',
           'ngrok-skip-browser-warning': 'true'
         }
       },
       '/uploads': {
-        target: 'https://late-cycles-exist.loca.lt/',
+        target: 'https://neat-paws-dream.loca.lt/',
         changeOrigin: true,
         secure: false,
+        timeout: 600000,
+        proxyTimeout: 600000,
         headers: {
           'Bypass-Tunnel-Reminder': 'true'
         }

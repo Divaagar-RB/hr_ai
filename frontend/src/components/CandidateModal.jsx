@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { X, User, Mail, Phone, Code, GraduationCap, Briefcase, Award, Save, Loader2, MessageSquare, FileText, MapPin, Link2 } from 'lucide-react';
+import { X, User, Save, Loader2, MessageSquare, FileText, MapPin, Link2, Award, GraduationCap, Briefcase } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 import config from '../config';
 
@@ -16,13 +16,7 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
 
-  useEffect(() => {
-    if (candidateId) {
-      fetchCandidateDetails();
-    }
-  }, [candidateId]);
-
-  const fetchCandidateDetails = async () => {
+  const fetchCandidateDetails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/candidates/${candidateId}`);
@@ -33,7 +27,14 @@ function CandidateModal({ candidateId, onClose, onUpdate }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [candidateId]);
+
+  useEffect(() => {
+    if (candidateId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchCandidateDetails();
+    }
+  }, [candidateId, fetchCandidateDetails]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, UserPlus, MessageSquare, PieChart, Menu, X, Rocket } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutDashboard, UserPlus, MessageSquare, PieChart, Menu, Rocket } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import Dashboard from './components/Dashboard';
 import ResumeUpload from './components/ResumeUpload';

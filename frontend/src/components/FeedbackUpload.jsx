@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Upload, MessageSquare, CheckCircle2, AlertCircle, Loader2, User, Star, ClipboardList, Target } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -18,18 +18,19 @@ function FeedbackUpload({ onComplete }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
-
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/candidates`);
       setCandidates(response.data);
     } catch (err) {
       console.error("Error fetching candidates:", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchCandidates();
+  }, [fetchCandidates]);
 
   const uploadFeedback = async () => {
     if (!file || !selectedCandidate) return;

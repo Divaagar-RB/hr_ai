@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, Filter, Mail, Phone, Calendar, ChevronRight, MoreVertical, BadgeCheck, BadgeAlert, BadgeInfo } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import CandidateModal from './CandidateModal';
@@ -17,16 +17,7 @@ function Dashboard({ initialSelectedId, onClearInitialId }) {
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
 
-  useEffect(() => {
-    fetchCandidates();
-    if (initialSelectedId) {
-      setSelectedCandidateId(initialSelectedId);
-      // Clean up the initial ID once consumed
-      if (onClearInitialId) onClearInitialId();
-    }
-  }, [initialSelectedId]);
-
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/candidates`);
@@ -36,7 +27,17 @@ function Dashboard({ initialSelectedId, onClearInitialId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchCandidates();
+    if (initialSelectedId) {
+      setSelectedCandidateId(initialSelectedId);
+      // Clean up the initial ID once consumed
+      if (onClearInitialId) onClearInitialId();
+    }
+  }, [initialSelectedId, fetchCandidates, onClearInitialId]);
 
   const filteredCandidates = candidates.filter(c => {
     const matchesSearch = c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 

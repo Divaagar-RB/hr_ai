@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Users, UserCheck, UserX, Clock, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import { Users, UserCheck, UserX, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import config from '../config';
@@ -17,11 +17,7 @@ function Analytics() {
     selectionRate: 0
   });
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/candidates`);
       const candidates = response.data;
@@ -40,7 +36,12 @@ function Analytics() {
     } catch (err) {
       console.error("Error fetching analytics:", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchStats();
+  }, [fetchStats]);
 
   const statCards = [
     { label: 'Total Candidates', value: stats.total, icon: Users, color: 'bg-indigo-500', shadow: 'shadow-indigo-200' },
