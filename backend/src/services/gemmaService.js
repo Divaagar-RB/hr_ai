@@ -134,49 +134,60 @@ async function callAI(prompt, filePath) {
     }
 }
 
-const RESUME_PROMPT = `You are a professional HR Data Extraction Specialist.
-Your task is to extract EVERY detail from the provided resume with 100% accuracy.
+const RESUME_PROMPT = `You are a resume data extraction engine with computer vision capability.
 
-### CRITICAL INSTRUCTIONS:
-1. **CONTACT INFO IS TOP PRIORITY**: Look at the very top (header) for Name, Email, Phone, and LinkedIn.
-2. **EMAIL & PHONE**: These are often in small icons or small text. Look closely.
-   - Example Email: rajeswari19p@gmail.com
-   - Example Phone: +91 7604802397
-3. **EDUCATION**: Extract the FULL institution name (e.g., "Government College of Technology"), degree, and CGPA.
-4. **EXPERIENCE**: Extract company name, role, and dates for all positions.
-5. **SKILLS**: List all technical and soft skills mentioned.
-6. **NO HALLUCINATION**: If a specific data point is missing, use null or [].
+A resume image is attached. Your only job is to extract information exactly as it appears — no inference, no guessing, no adding information not visible in the image.
 
-### FIELDS TO EXTRACT:
-- name: Full Name
-- email: Valid email address
-- phone: Full phone number (including + country code if present)
-- linkedin: LinkedIn profile link or username
-- location: Current city/state
-- skills: Array of skills
-- education: Array of { degree, institution, graduation_year, cgpa }
-- experience: Array of { company, role, start_date, end_date }
-- certifications: Array of strings
+STEP 1 — VISUAL SCAN:
+Before extracting, mentally scan:
+- The header/top section for name, email, phone, linkedin
+- Icons like envelope(✉), phone(📞), linkedin logo — text next to these is contact info
+- Left column vs right column — do not mix fields across columns
+- Section headers: Education, Experience, Skills, Certifications, Projects
 
-### OUTPUT FORMAT:
-Return ONLY the JSON object. No other text.
+STEP 2 — EXTRACT into this exact JSON structure:
 
 {
   "candidate": {
-    "name": "",
-    "email": "",
-    "phone": "",
-    "linkedin": "",
-    "location": "",
-    "skills": [],
-    "education": [],
-    "experience": [],
-    "certifications": []
+    "name": "string or null",
+    "email": "string or null",
+    "phone": "string with country code or null",
+    "linkedin": "full URL or username or null",
+    "location": "city, state or null",
+    "skills": ["skill1", "skill2"],
+    "education": [
+      {
+        "degree": "full degree name e.g. B.E. Computer Science",
+        "institution": "full institution name",
+        "graduation_year": "YYYY or null",
+        "cgpa": "X.XX or null"
+      }
+    ],
+    "experience": [
+      {
+        "company": "company name",
+        "role": "job title",
+        "start_date": "Mon YYYY or null",
+        "end_date": "Mon YYYY or Present or null"
+      }
+    ],
+    "certifications": ["exact certification name as written"]
   },
   "interview_rounds": [],
   "final_status": "Applied",
   "action": "INSERT"
-}`;
+}
+
+RULES:
+- Output ONLY the JSON object. Zero prose before or after.
+- If a field is not visible in the image: use null for strings, [] for arrays.
+- Do NOT invent or infer data. Only extract what is literally visible.
+- Phone number: include +91 or country code if shown next to the number.
+- Email: copy character by character — do not autocorrect spelling.
+- Institution name: copy the full name exactly, including "Government", "Dr.", "Sri" prefixes.
+- CGPA: extract the raw value shown (e.g. "8.4", "8.4/10") — do not convert or round.
+- Skills: include every skill listed, including soft skills if present.
+- Dates: use the format as written on the resume (e.g. "Jun 2023", "2021–2023").`;
 
 const FEEDBACK_PROMPT = `You are an Enterprise HR Interview Feedback Extraction Engine.
 

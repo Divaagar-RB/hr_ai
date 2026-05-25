@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://salty-news-hunt.loca.lt/',
+        target: 'https://few-wolves-hug.loca.lt/',
         changeOrigin: true,
         secure: false,
         timeout: 600000,
@@ -18,7 +18,7 @@ export default defineConfig({
         }
       },
       '/uploads': {
-        target: 'https://salty-news-hunt.loca.lt/',
+        target: 'https://few-wolves-hug.loca.lt/',
         changeOrigin: true,
         secure: false,
         timeout: 600000,
