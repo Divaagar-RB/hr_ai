@@ -32,6 +32,29 @@ function FeedbackUpload({ onComplete }) {
     fetchCandidates();
   }, [fetchCandidates]);
 
+  const pollJobStatus = async (jobId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/upload/status/${jobId}`);
+      const { status, data, error } = response.data;
+
+      if (status === 'completed') {
+        setResult(data.interviews);
+        setUploading(false);
+        toast.success("Feedback processed! Status updated.");
+        return true; // Done
+      } else if (status === 'failed') {
+        setError(error || "Extraction failed");
+        setUploading(false);
+        toast.error(error || "Extraction failed");
+        return true; // Done
+      }
+      return false; // Still processing
+    } catch (err) {
+      console.error("Polling failed:", err);
+      return false;
+    }
+  };
+
   const uploadFeedback = async () => {
     if (!file || !selectedCandidate) return;
 
@@ -43,14 +66,23 @@ function FeedbackUpload({ onComplete }) {
       setUploading(true);
       setError(null);
       const response = await axios.post(`${API_BASE_URL}/upload/feedback`, formData);
-      setResult(response.data.interviews);
-      toast.success("Feedback processed! Status updated.");
+      
+      const { jobId } = response.data;
+      if (jobId) {
+        const interval = setInterval(async () => {
+          const finished = await pollJobStatus(jobId);
+          if (finished) clearInterval(interval);
+        }, 2000);
+      } else {
+        setResult(response.data.interviews);
+        setUploading(false);
+        toast.success("Feedback processed!");
+      }
     } catch (err) {
       console.error("Upload failed:", err);
-      const msg = err.response?.data?.error || "Failed to extract feedback.";
+      const msg = err.response?.data?.error || "Failed to start feedback extraction.";
       setError(msg);
       toast.error(msg);
-    } finally {
       setUploading(false);
     }
   };

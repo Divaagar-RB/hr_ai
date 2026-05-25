@@ -17,6 +17,29 @@ function UnifiedUpload({ onComplete }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const pollJobStatus = async (jobId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/upload/status/${jobId}`);
+      const { status, data, error } = response.data;
+
+      if (status === 'completed') {
+        setResult(data);
+        setUploading(false);
+        toast.success("Extraction complete! Profile updated.");
+        return true; // Done
+      } else if (status === 'failed') {
+        setError(error || "Extraction failed");
+        setUploading(false);
+        toast.error(error || "Extraction failed");
+        return true; // Done
+      }
+      return false; // Still processing
+    } catch (err) {
+      console.error("Polling failed:", err);
+      return false;
+    }
+  };
+
   const handleUpload = async () => {
     if (!resumeFile || !feedbackFile) return;
 
@@ -28,14 +51,23 @@ function UnifiedUpload({ onComplete }) {
       setUploading(true);
       setError(null);
       const response = await axios.post(`${API_BASE_URL}/upload/unified`, formData);
-      setResult(response.data);
-      toast.success("Extraction complete! Profile updated.");
+      
+      const { jobId } = response.data;
+      if (jobId) {
+        const interval = setInterval(async () => {
+          const finished = await pollJobStatus(jobId);
+          if (finished) clearInterval(interval);
+        }, 2000);
+      } else {
+        setResult(response.data);
+        setUploading(false);
+        toast.success("Extraction complete!");
+      }
     } catch (err) {
       console.error("Unified upload failed:", err);
-      const msg = err.response?.data?.error || "Failed to process extraction.";
+      const msg = err.response?.data?.error || "Failed to start extraction pipeline.";
       setError(msg);
       toast.error(msg);
-    } finally {
       setUploading(false);
     }
   };

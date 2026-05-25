@@ -10,6 +10,15 @@ const pool = require("../db/db");
 
 const router = express.Router();
 
+// ── In-memory Job Store ──────────────────────────────────────────────────
+const extractionJobs = new Map();
+
+router.get("/status/:jobId", (req, res) => {
+    const job = extractionJobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    res.json(job);
+});
+
 // ── Status Priority ────────────────────────────────────────────────────────
 const STATUS_PRIORITY = {
     'Hired': 80,
@@ -220,28 +229,41 @@ router.post("/resume", upload.single("resume"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-        const raw = await extractResume(req.file.path);
-        const { candidate, interview_rounds, final_status } = parseAIResponse(raw);
+        const jobId = Date.now().toString();
+        extractionJobs.set(jobId, { status: "processing", progress: 0 });
 
-        const { row, action } = await upsertCandidate(candidate, req.file.path);
+        // Run extraction in background
+        (async () => {
+            try {
+                const raw = await extractResume(req.file.path);
+                const { candidate, interview_rounds, final_status } = parseAIResponse(raw);
+                const { row, action } = await upsertCandidate(candidate, req.file.path);
 
-        let interviews = [];
-        if (interview_rounds.length > 0) {
-            const { saved } = await saveRounds(row.id, interview_rounds, row.status);
-            interviews = saved;
-        }
+                let interviews = [];
+                if (interview_rounds.length > 0) {
+                    const { saved } = await saveRounds(row.id, interview_rounds, row.status);
+                    interviews = saved;
+                }
 
-        // Apply AI-inferred final_status if higher than current
-        if (final_status) {
-            const best = getHighestStatus(row.status || 'Pending', final_status);
-            await pool.query('UPDATE candidates SET status = $1 WHERE id = $2', [best, row.id]);
-            row.status = best;
-        }
+                if (final_status) {
+                    const best = getHighestStatus(row.status || 'Pending', final_status);
+                    await pool.query('UPDATE candidates SET status = $1 WHERE id = $2', [best, row.id]);
+                }
 
-        res.json({ message: "Resume extracted and saved", action, candidate: row, interviews });
+                extractionJobs.set(jobId, { 
+                    status: "completed", 
+                    data: { message: "Resume extracted and saved", action, candidate: row, interviews }
+                });
+            } catch (err) {
+                console.error(`[Job ${jobId}] Failed:`, err);
+                extractionJobs.set(jobId, { status: "failed", error: err.message });
+            }
+        })();
+
+        res.status(202).json({ jobId, message: "Extraction started" });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Resume extraction failed", details: err.message });
+        res.status(500).json({ error: "Failed to start extraction", details: err.message });
     }
 });
 
@@ -255,29 +277,42 @@ router.post("/feedback", upload.single("feedback"), async (req, res) => {
         const { candidate_id } = req.body;
         if (!candidate_id) return res.status(400).json({ error: "Candidate ID is required" });
 
-        const raw = await extractFeedback(req.file.path);
-        const { interview_rounds, final_status } = parseAIResponse(raw);
+        const jobId = "fb-" + Date.now().toString();
+        extractionJobs.set(jobId, { status: "processing", progress: 0 });
 
-        if (interview_rounds.length === 0) {
-            return res.status(400).json({
-                error: "AI could not extract valid interview rounds. Please try a clearer image."
-            });
-        }
+        (async () => {
+            try {
+                const raw = await extractFeedback(req.file.path);
+                const { interview_rounds, final_status } = parseAIResponse(raw);
 
-        const candRes = await pool.query('SELECT status FROM candidates WHERE id = $1', [candidate_id]);
-        const existingStatus = candRes.rows[0]?.status || 'Pending';
+                if (interview_rounds.length === 0) {
+                    throw new Error("AI could not extract valid interview rounds.");
+                }
 
-        const { saved, finalStatus } = await saveRounds(candidate_id, interview_rounds, existingStatus);
+                const candRes = await pool.query('SELECT status FROM candidates WHERE id = $1', [candidate_id]);
+                const existingStatus = candRes.rows[0]?.status || 'Pending';
 
-        const best = final_status ? getHighestStatus(finalStatus, final_status) : finalStatus;
-        if (best) {
-            await pool.query('UPDATE candidates SET status = $1 WHERE id = $2', [best, candidate_id]);
-        }
+                const { saved, finalStatus } = await saveRounds(candidate_id, interview_rounds, existingStatus);
 
-        res.json({ message: "Feedback extracted and saved", interviews: saved, final_status: best });
+                const best = final_status ? getHighestStatus(finalStatus, final_status) : finalStatus;
+                if (best) {
+                    await pool.query('UPDATE candidates SET status = $1 WHERE id = $2', [best, candidate_id]);
+                }
+
+                extractionJobs.set(jobId, { 
+                    status: "completed", 
+                    data: { message: "Feedback extracted and saved", interviews: saved, final_status: best }
+                });
+            } catch (err) {
+                console.error(`[Job ${jobId}] Failed:`, err);
+                extractionJobs.set(jobId, { status: "failed", error: err.message });
+            }
+        })();
+
+        res.status(202).json({ jobId, message: "Extraction started" });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Feedback extraction failed", details: err.message });
+        res.status(500).json({ error: "Failed to start extraction", details: err.message });
     }
 });
 
@@ -291,53 +326,64 @@ router.post("/unified", upload.array("files", 2), async (req, res) => {
         }
 
         const [resumeFile, feedbackFile] = req.files;
+        const jobId = "uni-" + Date.now().toString();
+        extractionJobs.set(jobId, { status: "processing", progress: 0 });
 
-        // 1. Extract Resume
-        const resumeRaw = await extractResume(resumeFile.path);
-        const { candidate, interview_rounds: resumeRounds, final_status: resumeFinalStatus } = parseAIResponse(resumeRaw);
+        (async () => {
+            try {
+                // 1. Extract Resume
+                const resumeRaw = await extractResume(resumeFile.path);
+                const { candidate, interview_rounds: resumeRounds, final_status: resumeFinalStatus } = parseAIResponse(resumeRaw);
+                const { row, action } = await upsertCandidate(candidate, resumeFile.path);
 
-        const { row, action } = await upsertCandidate(candidate, resumeFile.path);
+                // 2. Extract Feedback
+                let feedbackRounds = [];
+                let feedbackFinalStatus = null;
+                try {
+                    const feedbackRaw = await extractFeedback(feedbackFile.path);
+                    const parsed = parseAIResponse(feedbackRaw);
+                    feedbackRounds = parsed.interview_rounds || [];
+                    feedbackFinalStatus = parsed.final_status || null;
+                } catch (e) {
+                    console.warn("[uploadRoutes] Feedback extraction failed. Skipping.", e.message);
+                }
 
-        // 2. Extract Feedback
-        let feedbackRounds = [];
-        let feedbackFinalStatus = null;
-        try {
-            const feedbackRaw = await extractFeedback(feedbackFile.path);
-            const parsed = parseAIResponse(feedbackRaw);
-            feedbackRounds = parsed.interview_rounds || [];
-            feedbackFinalStatus = parsed.final_status || null;
-        } catch (e) {
-            console.warn("[uploadRoutes] Feedback extraction returned invalid JSON. Skipping.", e.message);
-        }
+                // 3. Merge all rounds
+                const allRounds = [...resumeRounds, ...feedbackRounds];
+                let interviews = [];
+                let finalStatus = row.status || 'Pending';
 
-        // 3. Merge all rounds (resume may embed some rounds too)
-        const allRounds = [...resumeRounds, ...feedbackRounds];
-        let interviews = [];
-        let finalStatus = row.status || 'Pending';
+                if (allRounds.length > 0) {
+                    const { saved, finalStatus: computedStatus } = await saveRounds(row.id, allRounds, finalStatus);
+                    interviews = saved;
+                    finalStatus = computedStatus;
+                }
 
-        if (allRounds.length > 0) {
-            const { saved, finalStatus: computedStatus } = await saveRounds(row.id, allRounds, finalStatus);
-            interviews = saved;
-            finalStatus = computedStatus;
-        }
+                const aiFinal = feedbackFinalStatus || resumeFinalStatus;
+                if (aiFinal) {
+                    finalStatus = getHighestStatus(finalStatus, aiFinal);
+                }
 
-        // 4. Apply AI-reported final_status if it ranks higher
-        const aiFinal = feedbackFinalStatus || resumeFinalStatus;
-        if (aiFinal) {
-            finalStatus = getHighestStatus(finalStatus, aiFinal);
-        }
+                if (finalStatus) {
+                    await pool.query('UPDATE candidates SET status = $1 WHERE id = $2', [finalStatus, row.id]);
+                }
 
-        if (finalStatus) {
-            await pool.query('UPDATE candidates SET status = $1 WHERE id = $2', [finalStatus, row.id]);
-            row.status = finalStatus;
-        }
+                extractionJobs.set(jobId, { 
+                    status: "completed", 
+                    data: {
+                        message: "Unified extraction successful",
+                        action,
+                        candidate: { ...row, status: finalStatus },
+                        interviews
+                    }
+                });
+            } catch (err) {
+                console.error(`[Job ${jobId}] Failed:`, err);
+                extractionJobs.set(jobId, { status: "failed", error: err.message });
+            }
+        })();
 
-        res.json({
-            message: "Unified extraction successful",
-            action,
-            candidate: { ...row, status: finalStatus },
-            interviews
-        });
+        res.status(202).json({ jobId, message: "Unified extraction started" });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Unified extraction failed", details: err.message });

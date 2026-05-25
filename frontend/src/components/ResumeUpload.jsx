@@ -61,6 +61,29 @@ function ResumeUpload({ onComplete }) {
     }
   };
 
+  const pollJobStatus = async (jobId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/upload/status/${jobId}`);
+      const { status, data, error } = response.data;
+
+      if (status === 'completed') {
+        setResult(data.candidate);
+        setUploading(false);
+        toast.success("Resume processed! Candidate added.");
+        return true; // Done
+      } else if (status === 'failed') {
+        setError(error || "Extraction failed");
+        setUploading(false);
+        toast.error(error || "Extraction failed");
+        return true; // Done
+      }
+      return false; // Still processing
+    } catch (err) {
+      console.error("Polling failed:", err);
+      return false;
+    }
+  };
+
   const uploadResume = async () => {
     if (!file) return;
 
@@ -71,14 +94,25 @@ function ResumeUpload({ onComplete }) {
       setUploading(true);
       setError(null);
       const response = await axios.post(`${API_BASE_URL}/upload/resume`, formData);
-      setResult(response.data.candidate);
-      toast.success("Resume processed! Candidate added.");
+      
+      const { jobId } = response.data;
+      if (jobId) {
+        // Start polling
+        const interval = setInterval(async () => {
+          const finished = await pollJobStatus(jobId);
+          if (finished) clearInterval(interval);
+        }, 2000); // Poll every 2 seconds
+      } else {
+        // Fallback for immediate response (if any)
+        setResult(response.data.candidate);
+        setUploading(false);
+        toast.success("Resume processed!");
+      }
     } catch (err) {
       console.error("Upload failed:", err);
-      const msg = err.response?.data?.error || "Failed to extract details.";
+      const msg = err.response?.data?.error || "Failed to start extraction.";
       setError(msg);
       toast.error(msg);
-    } finally {
       setUploading(false);
     }
   };
